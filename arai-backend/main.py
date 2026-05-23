@@ -1,0 +1,27 @@
+#import fastapi and CorsMiddleware, allowing frontend to communicate with backend
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from database import Base, engine
+import models.user
+from routers.auth import router as auth_router
+
+Base.metadata.create_all(bind=engine)  # creates tables on startup
+
+app = FastAPI(title = "Aria API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = ["https://localhost:5173"],
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
+#this will help the frontend sever (localhsot: 5173) communicate with the backend sever
+#(localhost: 8080) and use api methods, get, post, requests,...
+
+app.include_router(auth_router)
+
+@app.get("/health")
+def health():
+    return {"status" : "ok"}
+#one simple endpoint api created to test the server
