@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
 import models.user
+import models.task
+import models.event
 from routers.auth import router as auth_router
 
 Base.metadata.create_all(bind=engine)  # creates tables on startup
