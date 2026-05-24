@@ -1,0 +1,108 @@
+/* Auth Page Styles */
+
+.auth-container {
+  min-height: 100vh;
+  background-color: rgb(3, 7, 30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-left: 8px solid rgb(30, 41, 59);
+  border-right: 8px solid rgb(30, 41, 59);
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 320px;
+  background-color: rgb(30, 27, 75);
+  border: 1px solid rgb(55, 48, 163);
+  border-radius: 1rem;
+  padding: 2rem;
+}
+
+.auth-header h1 {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.auth-header p {
+  color: rgb(191, 219, 254);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.auth-inputs input {
+  background-color: rgb(29, 78, 216);
+  color: white;
+  border: 1px solid rgb(37, 99, 235);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.auth-inputs input::placeholder {
+  color: rgb(147, 197, 253);
+}
+
+.auth-inputs input:focus {
+  outline: none;
+  border-color: rgb(96, 165, 250);
+}
+
+.auth-error {
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+  color: rgb(252, 165, 165);
+}
+
+.auth-button {
+  margin-top: 1rem;
+  width: 100%;
+  background-color: rgb(37, 99, 235);
+  color: white;
+  font-weight: 500;
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.auth-button:hover:not(:disabled) {
+  background-color: rgb(59, 130, 246);
+}
+
+.auth-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgb(147, 197, 253);
+  margin-top: 1rem;
+}
+
+.auth-footer button {
+  color: rgb(191, 219, 254);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: text-decoration 0.2s;
+}
+
+.auth-footer button:hover {
+  text-decoration: underline;
+}
