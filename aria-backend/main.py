@@ -7,6 +7,9 @@ import models.task
 import models.event
 import models.course
 from routers.auth import router as auth_router
+from routers.tasks import router as tasks_router
+from routers.events import router as events_router
+from routers.courses import router as courses_router
 
 Base.metadata.create_all(bind=engine)  # creates tables on startup
 
@@ -23,6 +26,9 @@ app.add_middleware(
 #(localhost: 8080) and use api methods, get, post, requests,...
 
 app.include_router(auth_router)
+app.include_router(tasks_router)
+app.include_router(events_router)
+app.include_router(courses_router)
 
 @app.get("/health")
 def health():

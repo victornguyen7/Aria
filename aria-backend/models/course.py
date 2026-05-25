@@ -8,6 +8,7 @@ class course(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     name_code = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     instructor = Column(String, nullable=True)
     canvas_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
