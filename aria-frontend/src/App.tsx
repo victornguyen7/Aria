@@ -1,8 +1,30 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import AuthPage from "./pages/authPage";
+import DashboardPage from './pages/dashboardPage';
+
+// Protected route component - redirects to "/" if not authenticated
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, []);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <p className="text-white">Loading...</p>
+      </div>
+    );
+  }
+
+  return isAuthenticated ? children : <Navigate to="/" replace />;
+}
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +42,28 @@ export default function App() {
     );
   }
 
-  // For now, only show AuthPage
-  // TODO: Add Dashboard and other pages after authentication
-  return <AuthPage />;
+  return (
+    <Router>
+      <Routes>
+        {/* Auth page - redirect to dashboard if already authenticated */}
+        <Route
+          path="/"
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />}
+        />
+
+        {/* Dashboard - protected route */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
 }

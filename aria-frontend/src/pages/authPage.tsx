@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../contexts/AuthContext";
 import "../styles/authPage.css";
 
 export default function AuthPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +24,7 @@ export default function AuthPage() {
       if (isLogin) {
         const res = await api.post("/auth/login", { email, password });
         login(res.data.access_token);
-        window.location.href = "/dashboard";
+        navigate("/dashboard", { replace: true });
       } else {
         await api.post("/auth/register", { email, password });
         setIsLogin(true);
