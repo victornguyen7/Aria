@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
 
-from database import SessionLocal
+from database import SessionLocal, Base, engine
 from models.user import User
 from models.task import task, priority, status
 from models.event import event
 from models.course import course
 from models.auth import hash_password
+
+# Create all tables first
+Base.metadata.create_all(bind=engine)
 
 db = SessionLocal()
 
