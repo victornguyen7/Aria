@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import type { Task } from "../types";
+import AddTaskModal from "../components/addTaskModal";
 import "../styles/dashboardPage.css";
 
 const priorityColors: Record<string, string> = {
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -106,6 +108,10 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-container">
+      <button onClick={logout} className="logout-btn-top-right">
+        Log out
+      </button>
+
       <div className="dashboard-wrapper">
         {/* LEFT SIDEBAR */}
         <aside className="dashboard-sidebar-left">
@@ -135,8 +141,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <button onClick={logout} className="logout-btn">
-            Log out
+          <button onClick={() => setShowAddModal(true)} className="add-task-btn">
+            New Task
           </button>
         </aside>
 
@@ -316,6 +322,15 @@ export default function DashboardPage() {
           </div>
         </aside>
       </div>
+
+      <AddTaskModal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)}
+        onCreated={(newTask) => {
+          setTasks((prev) => [...prev, newTask]);
+          setShowAddModal(false);
+        }}
+      />
     </div>
   );
 }
