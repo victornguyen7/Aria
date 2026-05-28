@@ -10,6 +10,7 @@ from routers.auth import router as auth_router
 from routers.tasks import router as tasks_router
 from routers.events import router as events_router
 from routers.courses import router as courses_router
+from routers.chat import router as chat_router
 
 Base.metadata.create_all(bind=engine)  # creates tables on startup
 
@@ -29,6 +30,7 @@ app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(events_router)
 app.include_router(courses_router)
+app.include_router(chat_router)
 
 @app.get("/health")
 def health():
