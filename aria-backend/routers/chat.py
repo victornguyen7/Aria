@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from groq import Groq
+from groq import Groq # type: ignore
 from database import get_db
 from routers.auth import get_current_user
 from models.user import User
@@ -20,7 +20,7 @@ class ChatMessage(BaseModel):
     history: list[dict] = []
 
 
-def stream_chat_response(messages: list[dict]) -> str:
+def stream_chat_response(messages: list[dict]) -> str: # type: ignore
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=messages,

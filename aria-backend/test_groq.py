@@ -9,7 +9,7 @@ else:
     load_dotenv()
 
 import os
-from groq import Groq
+from groq import Groq # type: ignore
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
