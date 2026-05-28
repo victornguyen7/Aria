@@ -2,9 +2,15 @@ from sqlalchemy import create_engine #connect to my own database
 from sqlalchemy.ext.declarative import declarative_base #use the databse model as a python class
 from sqlalchemy.orm import sessionmaker #query the database
 import os
+from pathlib import Path
 from dotenv import load_dotenv #loads variables from .env file
 
-load_dotenv()
+# Load .env.local first (if it exists), then fall back to .env
+env_local_path = Path(__file__).parent / ".env.local"
+if env_local_path.exists():
+    load_dotenv(env_local_path)
+else:
+    load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./aria.db")
 
