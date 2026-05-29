@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import AuthPage from "./pages/authPage";
 import DashboardPage from './pages/dashboardPage';
+import ChatPage from './pages/chatPage';
 
 // Protected route component - redirects to "/" if not authenticated
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Chat - protected route */}
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           }
         />

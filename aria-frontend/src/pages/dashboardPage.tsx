@@ -108,9 +108,14 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-container">
-      <button onClick={logout} className="logout-btn-top-right">
-        Log out
-      </button>
+      <div className="dashboard-top-buttons">
+        <button onClick={() => navigate("/chat")} className="chat-btn-top-right">
+          Chat with ARIA
+        </button>
+        <button onClick={logout} className="logout-btn-top-right">
+          Log out
+        </button>
+      </div>
 
       <div className="dashboard-wrapper">
         {/* LEFT SIDEBAR */}
