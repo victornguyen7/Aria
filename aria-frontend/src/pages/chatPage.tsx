@@ -28,13 +28,23 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
+    // Token check — redirect to login if JWT is missing
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.warn("No authentication token found. Redirecting to login...");
+      navigate("/");
+      return;
+    }
+
     const userMessage: Message = { role: "user", content: input };
     
-    // Format history for API
-    const history = messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
+    // Filter empty messages from history — AI doesn't see blank assistant placeholder
+    const history = messages
+      .filter((msg) => msg.content.trim() !== "")
+      .map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
     // Add user message and loading placeholder
     setMessages((prevMessages) => [
@@ -47,7 +57,6 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/chat/stream`,
         {
@@ -60,18 +69,28 @@ export default function ChatPage() {
         }
       );
 
+      // Token check — handle 401 Unauthorized (token expired/invalid mid-session)
+      if (response.status === 401) {
+        console.warn("Authentication token expired. Redirecting to login...");
+        localStorage.removeItem("token");
+        navigate("/");
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
+      // stream: true for proper multi-byte character handling
+      const decoder = new TextDecoder("utf-8");
       let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        // Buffer handling — accumulate partial chunks with stream: true for multi-byte chars
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
 
@@ -98,30 +117,32 @@ export default function ChatPage() {
                 });
               }
             } catch (e) {
-              console.error("Error parsing message chunk:", e);
+              console.error("Error parsing message chunk:", e, "Data:", data);
             }
           }
         }
       }
 
-      // Process any remaining buffer
+      // Process any remaining buffer (final chunk)
       if (buffer.trim().startsWith("data: ")) {
-        const data = buffer.slice(6);
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.content) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastMessage = updated[updated.length - 1];
-              updated[updated.length - 1] = {
-                ...lastMessage,
-                content: lastMessage.content + parsed.content,
-              };
-              return updated;
-            });
+        const data = buffer.trim().slice(6);
+        if (data && data !== "[DONE]") {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const lastMessage = updated[updated.length - 1];
+                updated[updated.length - 1] = {
+                  ...lastMessage,
+                  content: lastMessage.content + parsed.content,
+                };
+                return updated;
+              });
+            }
+          } catch (e) {
+            console.error("Error parsing final message chunk:", e, "Data:", data);
           }
-        } catch (e) {
-          console.error("Error parsing final message chunk:", e);
         }
       }
     } catch (error) {
