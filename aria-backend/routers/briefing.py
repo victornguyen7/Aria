@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, logger
 from sqlalchemy.orm import Session
 from database import get_db
-from groq import Groq
+from groq import Groq # type: ignore
 from routers.auth import get_current_user
 from models.user import User
 from models.task import task, status
