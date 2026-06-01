@@ -21,10 +21,10 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     now = datetime.utcnow()
-    user_context = build_user_context(current_user, db)
+    # user_context = build_user_context(current_user, db) for future use
 
     top = get_priority_tasks(current_user.id, db)
-    top_text = "\n".join([f"- {t.title} {t.priority.upper()} - due {t.due_date.strftime('%b %d') if t.due_date else 'no date'}" for t in top]) or "No tasks."
+    top_text = "\n".join([f"- {t.title} {t.priority.value.upper()} - due {t.due_date.strftime('%b %d') if t.due_date else 'no date'}" for t in top]) or "No tasks."
     events = db.query(event).filter(event.user_id == current_user.id, event.start_time >= now).all()
     
     # Get all tasks for filtering
@@ -78,8 +78,21 @@ UPCOMING: {len(upcoming)} task(s) remaining
     except Exception as e:
         logger.error(f"Error Groq API: {e}")
 
+    focus_task = None
+    if top:
+        t = top[0]
+        focus_task = {
+            "id": t.id,
+            "title": t.title,
+            "priority": t.priority.value,
+            "due_date": t.due_date.isoformat() if t.due_date else None,
+            "status": t.status.value,
+            "description": t.description or None,
+        }
+
     return {
         "summary": summary,
+        "focus_task": focus_task,
         "overdue_count": len(overdue),
         "upcoming_count": len(upcoming),
         "today_events":[{
@@ -91,9 +104,9 @@ UPCOMING: {len(upcoming)} task(s) remaining
         "top_tasks": [{
             "id": t.id,
             "title": t.title,
-            "priority": t.priority,
+            "priority": t.priority.value,
             "due_date": t.due_date.isoformat() if t.due_date else None,
-            "status": t.status,
+            "status": t.status.value,
         } for t in top],
         "generated_at": now.isoformat()
     }
