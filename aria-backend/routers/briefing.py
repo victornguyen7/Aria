@@ -23,21 +23,46 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
     now = datetime.utcnow()
     user_context = build_user_context(current_user, db)
 
-    tasks = get_priority_tasks(current_user.id, db)
+    top = get_priority_tasks(current_user.id, db)
+    top_text = "\n".join([f"- {t.title} {t.priority.upper()} - due {t.due_date.strftime('%b %d') if t.due_date else 'no date'}" for t in top]) or "No tasks."
     events = db.query(event).filter(event.user_id == current_user.id, event.start_time >= now).all()
-    overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != status.done.value]
+    
+    # Get all tasks for filtering
+    all_tasks = db.query(task).filter(task.user_id == current_user.id).all()
+    overdue = [t for t in all_tasks if t.due_date and t.due_date < now and t.status != status.done.value]
     upcoming = sorted(
-         [t for t in tasks if t.status != status.done.value and (not t.due_date or t.due_date >= now)],
+         [t for t in all_tasks if t.status != status.done.value and (not t.due_date or t.due_date >= now)],
         key=lambda t: (t.due_date is None, t.due_date)
     )
     today = [e for e in events if e.start_time.date() == now.date()]
+    today_text = "\n".join([f"- {e.title} (At: {e.start_time.strftime('%I:%M %p')})" for e in today]) or "No events today."
 
     prompt = f"""
-Based on this student's data, write a short personalized daily briefing (3-4 sentences max).
-Mention their most urgent priorities, any overdue items, and one encouragement.
-Be warm and direct. No bullet points — flowing sentences only.
+You are ARIA, a warm and focused academic assistant. Write a personalized daily briefing for this student.
 
-{user_context}
+Structure your response in exactly this format:
+
+GREETING: One sentence greeting that mentions the day and sets the tone.
+FOCUS: One sentence naming the single most important thing they should work on today and why.
+HEADS UP: One sentence flagging anything urgent or overdue they must not forget.
+MOTIVATION: One short encouraging sentence tailored to their workload.
+
+Rules:
+- Base everything on their actual data below
+- Be specific — mention real task names and dates
+- Keep each section to one sentence only
+- Sound like a supportive study partner, not a robot
+
+TODAY'S DATE: {now.strftime("%A, %B %d %Y")}
+
+TOP PRIORITY TASKS:
+{top_text}
+
+TODAY'S EVENTS:
+{today_text}
+
+OVERDUE: {len(overdue)} task(s) overdue
+UPCOMING: {len(upcoming)} task(s) remaining
 """
     summary = "Unable to generate briefing at this time. Please try again."
     
@@ -45,7 +70,7 @@ Be warm and direct. No bullet points — flowing sentences only.
         response = client.chat.completions.create(
             model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=300,
+            max_tokens=400,
         )
         
         if response.choices and response.choices[0].message.content:
@@ -69,6 +94,6 @@ Be warm and direct. No bullet points — flowing sentences only.
             "priority": t.priority,
             "due_date": t.due_date.isoformat() if t.due_date else None,
             "status": t.status,
-        } for t in tasks],
+        } for t in top],
         "generated_at": now.isoformat()
     }
