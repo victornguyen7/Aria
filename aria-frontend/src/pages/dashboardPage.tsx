@@ -215,16 +215,20 @@ export default function DashboardPage() {
                   {label}
                 </p>
                 <div className="flex flex-col gap-2">
-                  {items.map((task) => (
+                  {items.map((task) => {
+                    const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
+                    return (
                     <div
                       key={task.id}
-                      className="dashboard-block flex items-start gap-3"
+                      className={`task-item flex items-start gap-3 ${isOverdue ? "overdue" : ""}`}
                     >
                       <button
                         onClick={() => toggleStatus(task)}
                         className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
                           task.status === "done"
                             ? "bg-green-500 border-green-500"
+                            : isOverdue
+                            ? "checkbox-overdue bg-red-500/20 border-red-500"
                             : "border-gray-600 hover:border-green-500"
                         }`}
                       >
@@ -235,23 +239,37 @@ export default function DashboardPage() {
                         )}
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-gray-500" : "text-white"}`}>
-                          {task.title}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-gray-500" : "text-white"}`}>
+                            {task.title}
+                          </p>
+                          {isOverdue && (
+                            <span className="overdue-badge">
+                              overdue
+                            </span>
+                          )}
+                        </div>
                         {task.description && (
                           <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         {task.due_date && (
-                          <span className="text-xs text-gray-500">{formatDate(task.due_date)}</span>
+                          <span className={`text-xs ${
+                            isOverdue
+                              ? "text-red-400 font-semibold"
+                              : "text-gray-500"
+                          }`}>
+                            {formatDate(task.due_date)}
+                          </span>
                         )}
-                        <span className={`text-xs font-semibold ${priorityColors[task.priority]}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${priorityColors[task.priority]}`}>
                           {task.priority}
                         </span>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : null
