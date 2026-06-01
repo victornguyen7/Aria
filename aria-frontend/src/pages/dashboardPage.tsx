@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 import type { Task } from "../types";
 import AddTaskModal from "../components/addTaskModal";
+import TodayTimeline from "../components/todayTimeline";
 import ReactMarkdown from "react-markdown";
 import "../styles/dashboardPage.css";
 
@@ -10,7 +11,7 @@ interface Briefing {
   focus_task: Task | null;
   overdue_count: number;
   upcoming_count: number;
-  today_events: { id: number; title: string; start_time: string; end_time?: string }[];
+  today_events: { id: string; title: string; start_time: string; end_time?: string }[];
   top_tasks: Task[];
   generated_at: string;
 }
@@ -60,9 +61,6 @@ export default function DashboardPage() {
     await api.put(`/tasks/${task.id}`, { status: nextStatus });
     fetchTasks();
   };
-
-  const formatTime = (iso?: string | Date | null) =>
-    iso ? new Date(iso as any).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
 
   const formatDate = (iso?: string | Date | null) =>
     iso ? new Date(iso as any).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
@@ -161,29 +159,12 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Today's events */}
-            {briefing?.today_events && briefing.today_events.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-3">
-                  Today's events
-                </p>
-                <div className="flex flex-col gap-2">
-                  {briefing.today_events.map((e) => (
-                    <div
-                      key={e.id}
-                      className="dashboard-block"
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <p className="text-sm text-white">{e.title}</p>
-                        <p className="text-xs text-gray-500">
-                          {formatTime(e.start_time)}
-                          {e.end_time && ` — ${formatTime(e.end_time)}`}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* Today's Timeline */}
+            {briefing && (
+              <TodayTimeline 
+                events={briefing.today_events || []} 
+                tasks={tasks.filter((t) => t.due_date && new Date(t.due_date).toDateString() === new Date().toDateString())}
+              />
             )}
           </div>
 
