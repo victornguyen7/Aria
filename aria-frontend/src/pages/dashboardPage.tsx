@@ -1,341 +1,272 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import api from "../api/axios";
 import type { Task } from "../types";
 import AddTaskModal from "../components/addTaskModal";
+import ReactMarkdown from "react-markdown";
 import "../styles/dashboardPage.css";
 
-const priorityColors: Record<string, string> = {
-  high: "high",
-  medium: "medium",
-  low: "low",
+interface Briefing {
+  summary: string;
+  focus_task: Task | null;
+  overdue_count: number;
+  upcoming_count: number;
+  today_events: { id: number; title: string; start_time: string; end_time?: string }[];
+  top_tasks: Task[];
+  generated_at: string;
+}
+
+const priorityColors = {
+  high: "bg-red-500/10 text-red-400 border-red-500/20",
+  medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  low: "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    navigate("/", { replace: true });
-  };
-
-  const fetchTasks = async (signal?: AbortSignal) => {
-    try {
-      const res = await api.get("/tasks/", { signal });
-      setTasks(Array.isArray(res.data) ? res.data : []);
-    } catch (err: any) {
-      // Ignore aborted requests (component unmounted)
-      if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
-
-      const status = err?.response?.status;
-      // Only logout on auth failure
-      if (status === 401 || status === 403) {
-        logout();
-        return;
-      }
-
-      // For transient errors, show empty state but keep logged in
-      setTasks([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [briefing, setBriefing] = useState<Briefing | null>(null);
+  const [loadingBriefing, setLoadingBriefing] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      logout();
-      return;
-    }
-
-    const controller = new AbortController();
-    fetchTasks(controller.signal);
-
-    return () => controller.abort();
+    if (!token) { window.location.href = "/"; return; }
+    fetchTasks();
+    fetchBriefing();
   }, []);
 
-  const toggleStatus = async (task: Task) => {
-    if (togglingId === task.id) return; // Prevent double-submit
-
-    const nextStatus = task.status === "done" ? "todo" : "done";
+  const fetchTasks = async () => {
     try {
-      setTogglingId(task.id);
-      await api.put(`/tasks/${task.id}`, { status: nextStatus });
-      await fetchTasks();
-    } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 401 || status === 403) logout();
-      // Otherwise silently fail and let user retry
-    } finally {
-      setTogglingId(null);
+      const res = await api.get("/tasks/");
+      setTasks(res.data);
+    } catch {
+      localStorage.removeItem("token");
+      window.location.href = "/";
     }
   };
 
-  const now = useMemo(() => new Date(), [tasks.length]); // Refresh reference after fetches
+  const fetchBriefing = async () => {
+    try {
+      const res = await api.get("/briefing/");
+      setBriefing(res.data);
+    } catch {
+      console.error("Failed to load briefing");
+    } finally {
+      setLoadingBriefing(false);
+    }
+  };
 
-  const overdue = useMemo(
-    () =>
-      tasks.filter(
-        (t) => t.due_date && new Date(t.due_date) < now && t.status !== "done"
-      ),
-    [tasks, now]
+  const toggleStatus = async (task: Task) => {
+    const nextStatus = task.status === "done" ? "todo" : "done";
+    await api.put(`/tasks/${task.id}`, { status: nextStatus });
+    fetchTasks();
+  };
+
+  const formatTime = (iso?: string | Date | null) =>
+    iso ? new Date(iso as any).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+
+  const formatDate = (iso?: string | Date | null) =>
+    iso ? new Date(iso as any).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+
+  const overdue = tasks.filter(
+    (t) => t.due_date && new Date(t.due_date) < new Date() && t.status !== "done"
   );
-
-  const upcoming = useMemo(
-    () =>
-      tasks.filter(
-        (t) => t.status !== "done" && (!t.due_date || new Date(t.due_date) >= now)
-      ),
-    [tasks, now]
+  const upcoming = tasks.filter(
+    (t) => t.status !== "done" && (!t.due_date || new Date(t.due_date) >= new Date())
   );
-
-  const done = useMemo(() => tasks.filter((t) => t.status === "done"), [tasks]);
-
-  const formatDate = (date: Date | string) =>
-    new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-      </div>
-    );
-  }
+  const done = tasks.filter((t) => t.status === "done");
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-top-buttons">
-        <button onClick={() => navigate("/chat")} className="chat-btn-top-right">
-          Chat with ARIA
-        </button>
-        <button onClick={logout} className="logout-btn-top-right">
-          Log out
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-5xl mx-auto px-4 py-10">
 
-      <div className="dashboard-wrapper">
-        {/* LEFT SIDEBAR */}
-        <aside className="dashboard-sidebar-left">
-          <div className="dashboard-header">
-            <h1>Good morning ✦</h1>
-            <p>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-12">
+          <div>
+            <h1 className="text-2xl font-semibold">Good morning ✦</h1>
+            <p className="text-gray-400 text-sm mt-1">
               {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
+                weekday: "long", month: "long", day: "numeric",
               })}
             </p>
           </div>
-
-          <div className="dashboard-stats">
-            <div className={`stat-card overdue`}>
-              <div className="stat-label">Overdue</div>
-              <p className="stat-count">{overdue.length}</p>
-            </div>
-            <div className={`stat-card upcoming`}>
-              <div className="stat-label">Upcoming</div>
-              <p className="stat-count">{upcoming.length}</p>
-            </div>
-            <div className={`stat-card done`}>
-              <div className="stat-label">Done</div>
-              <p className="stat-count">{done.length}</p>
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => (window.location.href = "/chat")}
+              className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            >
+              Chat with ARIA
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            >
+              + New task
+            </button>
+            <button
+              onClick={() => { localStorage.removeItem("token"); window.location.href = "/"; }}
+              className="text-sm text-gray-500 hover:text-white transition"
+            >
+              Log out
+            </button>
           </div>
+        </div>
 
-          <button onClick={() => setShowAddModal(true)} className="add-task-btn">
-            New Task
-          </button>
-        </aside>
-
-        {/* CENTER SECTION - TASKS */}
-        <main className="dashboard-main">
-          {/* Overdue Tasks */}
-          {overdue.length > 0 && (
-            <div className="tasks-container">
-              <h2 className="tasks-section-title overdue">Overdue</h2>
-              <ul className="task-list">
-                {overdue.map((task) => (
-                  <li key={task.id} className={`task-item ${task.status === "done" ? "done" : ""}`}>
-                    <button
-                      onClick={() => toggleStatus(task)}
-                      disabled={togglingId === task.id}
-                      className={`task-checkbox ${task.status === "done" ? "checked" : ""}`}
-                    >
-                      {task.status === "done" && (
-                        <svg
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                    <div className="task-content">
-                      <p className="task-title">{task.title}</p>
-                      {task.description && (
-                        <p className="task-description">{task.description}</p>
-                      )}
-                    </div>
-                    <div className="task-meta">
-                      {task.due_date && (
-                        <span className="task-date">{formatDate(task.due_date)}</span>
-                      )}
-                      <span className={`task-priority ${priorityColors[task.priority] ?? "medium"}`}>
-                        {task.priority ?? "medium"}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Upcoming Tasks */}
-          {upcoming.length > 0 && (
-            <div className="tasks-container">
-              <h2 className="tasks-section-title upcoming">Upcoming</h2>
-              <ul className="task-list">
-                {upcoming.map((task) => (
-                  <li key={task.id} className={`task-item ${task.status === "done" ? "done" : ""}`}>
-                    <button
-                      onClick={() => toggleStatus(task)}
-                      disabled={togglingId === task.id}
-                      className={`task-checkbox ${task.status === "done" ? "checked" : ""}`}
-                    >
-                      {task.status === "done" && (
-                        <svg
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                    <div className="task-content">
-                      <p className="task-title">{task.title}</p>
-                      {task.description && (
-                        <p className="task-description">{task.description}</p>
-                      )}
-                    </div>
-                    <div className="task-meta">
-                      {task.due_date && (
-                        <span className="task-date">{formatDate(task.due_date)}</span>
-                      )}
-                      <span className={`task-priority ${priorityColors[task.priority] ?? "medium"}`}>
-                        {task.priority ?? "medium"}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Done Tasks */}
-          {done.length > 0 && (
-            <div className="tasks-container">
-              <h2 className="tasks-section-title done">Done</h2>
-              <ul className="task-list">
-                {done.map((task) => (
-                  <li key={task.id} className={`task-item ${task.status === "done" ? "done" : ""}`}>
-                    <button
-                      onClick={() => toggleStatus(task)}
-                      disabled={togglingId === task.id}
-                      className={`task-checkbox ${task.status === "done" ? "checked" : ""}`}
-                    >
-                      {task.status === "done" && (
-                        <svg
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                    <div className="task-content">
-                      <p className="task-title">{task.title}</p>
-                      {task.description && (
-                        <p className="task-description">{task.description}</p>
-                      )}
-                    </div>
-                    <div className="task-meta">
-                      {task.due_date && (
-                        <span className="task-date">{formatDate(task.due_date)}</span>
-                      )}
-                      <span className={`task-priority ${priorityColors[task.priority] ?? "medium"}`}>
-                        {task.priority ?? "medium"}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {overdue.length === 0 && upcoming.length === 0 && done.length === 0 && (
-            <div className="tasks-container">
-              <div className="empty-state">
-                <p>No tasks yet. Start by creating one!</p>
+        <div className="grid grid-cols-3 gap-6 mb-12">
+          {/* Left Column - Briefing & Focus */}
+          <div className="col-span-2 space-y-6">
+            
+            {/* AI Briefing card */}
+            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
+                  A
+                </div>
+                <p className="text-indigo-400 text-sm font-medium">ARIA's daily briefing</p>
               </div>
+              {loadingBriefing ? (
+                <div className="flex flex-col gap-2">
+                  <div className="h-4 bg-gray-800 rounded animate-pulse w-3/4" />
+                  <div className="h-4 bg-gray-800 rounded animate-pulse w-full" />
+                  <div className="h-4 bg-gray-800 rounded animate-pulse w-2/3" />
+                </div>
+              ) : briefing ? (
+                <div className="text-gray-300 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+                  <ReactMarkdown>{briefing.summary}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">Could not load briefing.</p>
+              )}
             </div>
+
+            {/* Focus task */}
+            {briefing?.focus_task && (
+              <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-5">
+                <p className="text-xs font-medium text-indigo-400 uppercase tracking-widest mb-2">
+                  Today's focus
+                </p>
+                <p className="text-white font-medium">{briefing.focus_task.title}</p>
+                {briefing.focus_task.description && (
+                  <p className="text-gray-400 text-sm mt-1">{briefing.focus_task.description}</p>
+                )}
+                <div className="flex items-center gap-2 mt-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${priorityColors[briefing.focus_task.priority]}`}>
+                    {briefing.focus_task.priority}
+                  </span>
+                  {briefing.focus_task.due_date && (
+                    <span className="text-xs text-gray-500">
+                      Due {formatDate(briefing.focus_task.due_date)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Today's events */}
+            {briefing?.today_events && briefing.today_events.length > 0 && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-3">
+                  Today's events
+                </p>
+                <div className="flex flex-col gap-2">
+                  {briefing.today_events.map((e) => (
+                    <div
+                      key={e.id}
+                      className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between"
+                    >
+                      <p className="text-sm text-white">{e.title}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatTime(e.start_time)}
+                        {e.end_time && ` — ${formatTime(e.end_time)}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Stats */}
+          <div className="space-y-3">
+            {[
+              { label: "Overdue", count: overdue.length, color: "text-red-400" },
+              { label: "Upcoming", count: upcoming.length, color: "text-blue-400" },
+              { label: "Done", count: done.length, color: "text-green-400" },
+            ].map((s) => (
+              <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                <p className={`text-3xl font-semibold ${s.color}`}>{s.count}</p>
+                <p className="text-gray-500 text-sm mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Task sections */}
+        <div className="mt-16 space-y-8">
+          {[
+            { label: "Overdue", items: overdue, accent: "text-red-400" },
+            { label: "Upcoming", items: upcoming, accent: "text-white" },
+            { label: "Done", items: done, accent: "text-gray-500" },
+          ].map(({ label, items, accent }) =>
+            items.length > 0 ? (
+              <div key={label}>
+                <p className={`text-xs font-medium uppercase tracking-widest mb-3 ${accent}`}>
+                  {label}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {items.map((task) => (
+                    <div
+                      key={task.id}
+                      className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-start gap-3 hover:border-gray-700 transition"
+                    >
+                      <button
+                        onClick={() => toggleStatus(task)}
+                        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
+                          task.status === "done"
+                            ? "bg-green-500 border-green-500"
+                            : "border-gray-600 hover:border-green-500"
+                        }`}
+                      >
+                        {task.status === "done" && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-gray-500" : "text-white"}`}>
+                          {task.title}
+                        </p>
+                        {task.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {task.due_date && (
+                          <span className="text-xs text-gray-500">{formatDate(task.due_date)}</span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${priorityColors[task.priority]}`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null
           )}
-        </main>
-
-        {/* RIGHT SIDEBAR */}
-        <aside className="dashboard-sidebar-right">
-          <div className="sidebar-section">
-            <h3 className="sidebar-title">Quick Info</h3>
-            <div className="sidebar-content">
-              <p>
-                You have <strong>{overdue.length}</strong> overdue task{overdue.length !== 1 ? "s" : ""}.
-              </p>
-              <p style={{ marginTop: "0.5rem" }}>
-                Keep up with <strong>{upcoming.length}</strong> upcoming task{upcoming.length !== 1 ? "s" : ""}!
-              </p>
-            </div>
-          </div>
-
-          <div className="sidebar-section">
-            <h3 className="sidebar-title">Quick Filters</h3>
-            <div className="quick-filters">
-              <button className="filter-btn">My Tasks</button>
-              <button className="filter-btn">This Week</button>
-              <button className="filter-btn">This Month</button>
-            </div>
-          </div>
-        </aside>
+        </div>
       </div>
 
-      <AddTaskModal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)}
-        onCreated={(newTask) => {
-          setTasks((prev) => [...prev, newTask]);
-          setShowAddModal(false);
-        }}
-      />
+      {showModal && (
+        <AddTaskModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          onCreated={() => {
+            fetchTasks();
+            setShowModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
