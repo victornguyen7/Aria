@@ -125,6 +125,50 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* ============= Dashboard Container with Side Borders ============= */
+.dashboard-container {
+  border-left: 3px solid rgba(99, 102, 241, 0.3);
+  border-right: 3px solid rgba(99, 102, 241, 0.3);
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* ============= Dashboard Block Styles ============= */
+.dashboard-block {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(24, 33, 47, 0.95) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 10px 25px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 16px;
+}
+
+.dashboard-block:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+/* ============= Spacing Utilities ============= */
+.block-spacing {
+  gap: 16px;
+}
+
+.block-spacing > * {
+  margin-bottom: 16px;
+}
+
+.block-spacing > *:last-child {
+  margin-bottom: 0;
+}
+
 /* ============= Button Styles ============= */
 button {
   font-family: inherit;

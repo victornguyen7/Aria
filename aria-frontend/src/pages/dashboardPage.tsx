@@ -16,9 +16,9 @@ interface Briefing {
 }
 
 const priorityColors = {
-  high: "bg-red-500/10 text-red-400 border-red-500/20",
-  medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  low: "bg-green-500/10 text-green-400 border-green-500/20",
+  high: "text-red-500 font-bold",
+  medium: "text-red-500 font-bold",
+  low: "text-red-500 font-bold",
 };
 
 export default function DashboardPage() {
@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-5xl mx-auto px-4 py-10 dashboard-container">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           <div className="col-span-2 space-y-6">
             
             {/* AI Briefing card */}
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-6">
+            <div className="dashboard-block">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
                   A
@@ -140,7 +140,7 @@ export default function DashboardPage() {
 
             {/* Focus task */}
             {briefing?.focus_task && (
-              <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-5">
+              <div className="dashboard-block">
                 <p className="text-xs font-medium text-indigo-400 uppercase tracking-widest mb-2">
                   Today's focus
                 </p>
@@ -148,8 +148,8 @@ export default function DashboardPage() {
                 {briefing.focus_task.description && (
                   <p className="text-gray-400 text-sm mt-1">{briefing.focus_task.description}</p>
                 )}
-                <div className="flex items-center gap-2 mt-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${priorityColors[briefing.focus_task.priority]}`}>
+                <div className="flex items-center gap-4 mt-3">
+                  <span className={`text-xs font-semibold ${priorityColors[briefing.focus_task.priority]}`}>
                     {briefing.focus_task.priority}
                   </span>
                   {briefing.focus_task.due_date && (
@@ -171,13 +171,15 @@ export default function DashboardPage() {
                   {briefing.today_events.map((e) => (
                     <div
                       key={e.id}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between"
+                      className="dashboard-block"
                     >
-                      <p className="text-sm text-white">{e.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatTime(e.start_time)}
-                        {e.end_time && ` — ${formatTime(e.end_time)}`}
-                      </p>
+                      <div className="flex items-center justify-between w-full">
+                        <p className="text-sm text-white">{e.title}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatTime(e.start_time)}
+                          {e.end_time && ` — ${formatTime(e.end_time)}`}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -186,13 +188,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Stats */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[
               { label: "Overdue", count: overdue.length, color: "text-red-400" },
               { label: "Upcoming", count: upcoming.length, color: "text-blue-400" },
               { label: "Done", count: done.length, color: "text-green-400" },
             ].map((s) => (
-              <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <div key={s.label} className="dashboard-block">
                 <p className={`text-3xl font-semibold ${s.color}`}>{s.count}</p>
                 <p className="text-gray-500 text-sm mt-1">{s.label}</p>
               </div>
@@ -216,7 +218,7 @@ export default function DashboardPage() {
                   {items.map((task) => (
                     <div
                       key={task.id}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-start gap-3 hover:border-gray-700 transition"
+                      className="dashboard-block flex items-start gap-3"
                     >
                       <button
                         onClick={() => toggleStatus(task)}
@@ -240,11 +242,11 @@ export default function DashboardPage() {
                           <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-4 flex-shrink-0">
                         {task.due_date && (
                           <span className="text-xs text-gray-500">{formatDate(task.due_date)}</span>
                         )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${priorityColors[task.priority]}`}>
+                        <span className={`text-xs font-semibold ${priorityColors[task.priority]}`}>
                           {task.priority}
                         </span>
                       </div>
