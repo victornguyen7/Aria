@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, logger
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from groq import Groq # type: ignore
@@ -6,9 +6,12 @@ from routers.auth import get_current_user
 from models.user import User
 from models.task import task, status
 from models.event import event
-from services.context import build_user_context
+from services.context import build_user_context, get_priority_tasks
 import os
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
 
@@ -20,11 +23,11 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
     now = datetime.utcnow()
     user_context = build_user_context(current_user, db)
 
-    tasks = db.query(task).filter(task.user_id == current_user.id).all()
+    tasks = get_priority_tasks(current_user.id, db)
     events = db.query(event).filter(event.user_id == current_user.id, event.start_time >= now).all()
-    overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != "done"]
+    overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != status.done.value]
     upcoming = sorted(
-         [t for t in tasks if t.status != "done" and (not t.due_date or t.due_date >= now)],
+         [t for t in tasks if t.status != status.done.value and (not t.due_date or t.due_date >= now)],
         key=lambda t: (t.due_date is None, t.due_date)
     )
     today = [e for e in events if e.start_time.date() == now.date()]
@@ -36,20 +39,19 @@ Be warm and direct. No bullet points — flowing sentences only.
 
 {user_context}
 """
+    summary = "Unable to generate briefing at this time. Please try again."
+    
     try:
         response = client.chat.completions.create(
             model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
             messages=[{"role": "user", "content": prompt}],
             max_tokens=300,
         )
+        
+        if response.choices and response.choices[0].message.content:
+            summary = response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error Groq API: {e}")
-        summary = "Unable to generate briefing at this time. Please try again."
-
-    if not response.choices or not response.choices[0].message.content:
-        summary = "Unable to generate briefing at this time. Please try again."
-    else:
-        summary = response.choices[0].message.content.strip()
 
     return {
         "summary": summary,
@@ -67,6 +69,6 @@ Be warm and direct. No bullet points — flowing sentences only.
             "priority": t.priority,
             "due_date": t.due_date.isoformat() if t.due_date else None,
             "status": t.status,
-        } for t in upcoming[:3]],
+        } for t in tasks],
         "generated_at": now.isoformat()
     }

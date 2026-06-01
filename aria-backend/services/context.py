@@ -1,9 +1,46 @@
 from sqlalchemy.orm import Session 
 from models.user import User
-from models.task import task
+from models.task import task, status, priority
 from models.event import event
 from models.course import course
 from datetime import datetime
+
+def score_priority(task_obj: task, now: datetime) -> float:
+    score = 0.0
+
+    priority_scores = {
+        priority.low: 10,
+        priority.medium: 50,
+        priority.high: 100
+    }
+
+    score += priority_scores.get(task_obj.priority, 0)
+
+    if task_obj.due_date:
+        hours_until_due = (task_obj.due_date - now).total_seconds() / 3600
+        if hours_until_due < 0:
+            score += 200
+        elif hours_until_due < 24:
+            score += 150
+        elif hours_until_due < 48:
+            score += 100
+        elif hours_until_due < 72:
+            score += 50
+        elif hours_until_due < 168:
+            score += 25
+    else:
+        score += 5
+
+    if task_obj.status == status.in_progress.value:
+        score += 20
+
+    return score
+
+def get_priority_tasks(user_id: int, db: Session, limit: int = 5) -> list:
+    now = datetime.utcnow()
+    tasks = db.query(task).filter(task.user_id == user_id, task.status != status.done.value).all()
+    scored = sorted(tasks, key=lambda t: score_priority(t, now), reverse=True)
+    return scored[:limit]
 
 def build_user_context(user: User, db: Session) -> str:
     now = datetime.utcnow()
@@ -12,9 +49,9 @@ def build_user_context(user: User, db: Session) -> str:
     events = db.query(event).filter(event.user_id == user.id, event.start_time >= now).order_by(event.start_time).all()
     courses = db.query(course).filter(course.user_id == user.id).all()
 
-    overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != "done"]
-    upcoming = [t for t in tasks if t.due_date and t.due_date >= now and t.status != "done"]
-    done = [t for t in tasks if t.status == "done"]
+    overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != status.done.value]
+    upcoming = [t for t in tasks if t.due_date and t.due_date >= now and t.status != status.done.value]
+    done = [t for t in tasks if t.status == status.done.value]
 
     upcoming_events = sorted(
         [e for e in events if e.start_time >= now],
