@@ -16,10 +16,10 @@ interface Briefing {
   generated_at: string;
 }
 
-const priorityColors = {
-  high: "text-red-500 font-bold",
-  medium: "text-red-500 font-bold",
-  low: "text-red-500 font-bold",
+const priorityPill = {
+  high: "pill pill-high",
+  medium: "pill pill-medium",
+  low: "pill pill-low",
 };
 
 export default function DashboardPage() {
@@ -74,35 +74,30 @@ export default function DashboardPage() {
   const done = tasks.filter((t) => t.status === "done");
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen text-white" style={{ background: "var(--bg)" }}>
       <div className="max-w-5xl mx-auto px-4 py-10 dashboard-container">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-semibold">Good morning ✦</h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Good morning ✦</h1>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long", month: "long", day: "numeric",
               })}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => (window.location.href = "/chat")}
-              className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-            >
+            <button onClick={() => (window.location.href = "/chat")} className="btn-ghost">
               Chat with ARIA
             </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-            >
+            <button onClick={() => setShowModal(true)} className="btn-primary">
               + New task
             </button>
             <button
               onClick={() => { localStorage.removeItem("token"); window.location.href = "/"; }}
-              className="text-sm text-gray-500 hover:text-white transition"
+              className="text-sm transition"
+              style={{ color: "var(--text-dim)" }}
             >
               Log out
             </button>
@@ -112,46 +107,49 @@ export default function DashboardPage() {
         <div className="grid grid-cols-3 gap-6 mb-12">
           {/* Left Column - Briefing & Focus */}
           <div className="col-span-2 space-y-6">
-            
+
             {/* AI Briefing card */}
             <div className="dashboard-block">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                  style={{ background: "var(--accent)" }}
+                >
                   A
                 </div>
-                <p className="text-indigo-400 text-sm font-medium">ARIA's daily briefing</p>
+                <p className="text-sm font-medium" style={{ color: "var(--accent)" }}>ARIA's daily briefing</p>
               </div>
               {loadingBriefing ? (
                 <div className="flex flex-col gap-2">
-                  <div className="h-4 bg-gray-800 rounded animate-pulse w-3/4" />
-                  <div className="h-4 bg-gray-800 rounded animate-pulse w-full" />
-                  <div className="h-4 bg-gray-800 rounded animate-pulse w-2/3" />
+                  <div className="h-4 rounded animate-pulse w-3/4" style={{ background: "var(--surface-2)" }} />
+                  <div className="h-4 rounded animate-pulse w-full" style={{ background: "var(--surface-2)" }} />
+                  <div className="h-4 rounded animate-pulse w-2/3" style={{ background: "var(--surface-2)" }} />
                 </div>
               ) : briefing ? (
-                <div className="text-gray-300 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+                <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none" style={{ color: "var(--text-muted)" }}>
                   <ReactMarkdown>{briefing.summary}</ReactMarkdown>
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm">Could not load briefing.</p>
+                <p className="text-sm" style={{ color: "var(--text-dim)" }}>Could not load briefing.</p>
               )}
             </div>
 
             {/* Focus task */}
             {briefing?.focus_task && (
               <div className="dashboard-block">
-                <p className="text-xs font-medium text-indigo-400 uppercase tracking-widest mb-2">
+                <p className="text-xs font-medium uppercase tracking-widest mb-2" style={{ color: "var(--accent)" }}>
                   Today's focus
                 </p>
                 <p className="text-white font-medium">{briefing.focus_task.title}</p>
                 {briefing.focus_task.description && (
-                  <p className="text-gray-400 text-sm mt-1">{briefing.focus_task.description}</p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{briefing.focus_task.description}</p>
                 )}
-                <div className="flex items-center gap-4 mt-3">
-                  <span className={`text-xs font-semibold ${priorityColors[briefing.focus_task.priority]}`}>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className={priorityPill[briefing.focus_task.priority]}>
                     {briefing.focus_task.priority}
                   </span>
                   {briefing.focus_task.due_date && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs" style={{ color: "var(--text-dim)" }}>
                       Due {formatDate(briefing.focus_task.due_date)}
                     </span>
                   )}
@@ -173,11 +171,11 @@ export default function DashboardPage() {
             {[
               { label: "Overdue", count: overdue.length, color: "text-red-400" },
               { label: "Upcoming", count: upcoming.length, color: "text-blue-400" },
-              { label: "Done", count: done.length, color: "text-green-400" },
+              { label: "Done", count: done.length, color: "text-emerald-400" },
             ].map((s) => (
-              <div key={s.label} className="dashboard-block">
+              <div key={s.label} className="stat-card">
                 <p className={`text-3xl font-semibold ${s.color}`}>{s.count}</p>
-                <p className="text-gray-500 text-sm mt-1">{s.label}</p>
+                <p className="text-sm mt-1" style={{ color: "var(--text-dim)" }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -188,7 +186,7 @@ export default function DashboardPage() {
           {[
             { label: "Overdue", items: overdue, accent: "text-red-400" },
             { label: "Upcoming", items: upcoming, accent: "text-white" },
-            { label: "Done", items: done, accent: "text-gray-500" },
+            { label: "Done", items: done, accent: "text-slate-500" },
           ].map(({ label, items, accent }) =>
             items.length > 0 ? (
               <div key={label}>
@@ -231,20 +229,17 @@ export default function DashboardPage() {
                           )}
                         </div>
                         {task.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>
+                          <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-dim)" }}>{task.description}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {task.due_date && (
-                          <span className={`text-xs ${
-                            isOverdue
-                              ? "text-red-400 font-semibold"
-                              : "text-gray-500"
-                          }`}>
+                          <span className={`text-xs ${isOverdue ? "text-red-400 font-semibold" : ""}`}
+                            style={!isOverdue ? { color: "var(--text-dim)" } : undefined}>
                             {formatDate(task.due_date)}
                           </span>
                         )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${priorityColors[task.priority]}`}>
+                        <span className={priorityPill[task.priority]}>
                           {task.priority}
                         </span>
                       </div>
