@@ -50,7 +50,7 @@ Frontend reads `VITE_API_URL` (the backend base URL) via `import.meta.env`.
 ## Architecture
 
 ### Backend request flow
-`main.py` wires CORS (locked to `http://localhost:5173`) and mounts six routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`.
+`main.py` wires CORS (locked to `http://localhost:5173`) and mounts seven routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`.
 
 - **Auth** (`routers/auth.py`, `models/auth.py`): JWT bearer tokens. Login uses FastAPI's `OAuth2PasswordRequestForm` where the `username` field is treated as the (lowercased) email. Passwords hashed with Argon2 (bcrypt fallback) via passlib. `get_current_user` is the dependency every protected route depends on — it decodes the JWT `sub` (email) and loads the `User`.
 - **Data ownership**: tasks/events/courses are always filtered by `user_id == current_user.id`. Follow this pattern for any new per-user query or mutation.
@@ -66,11 +66,26 @@ The AI features don't call the model with raw user input alone; they inject the 
 `score_priority` / `get_priority_tasks` in `services/context.py` is the ranking algorithm (priority weight + due-date proximity + in-progress bonus) used to pick the focus task and top tasks. Tune scoring here, not in the routers.
 
 ### Google Calendar integration (in progress)
-The app is being wired to pull a student's Google Calendar into the same `events` table the rest of the app reads from, so calendar entries flow into context/briefing alongside manually-created data. Current state of the scaffolding:
+The app is being wired to pull a student's Google Calendar into the same `events` table the rest of the app reads from, so calendar entries flow into context/briefing alongside manually-created data.
 
-- **Credentials**: the three `GOOGLE_*` env vars above + the Google client libs in `.venv` (see Environment). OAuth uses the authorization-code flow (`google-auth-oauthlib`); `GOOGLE_REDIRECT_URI` is where Google sends the user back after consent.
-- **`source` provenance column**: `event` (and conceptually `course`) carries a `source` string, default `"manual"`, set to `"google_calendar"` for synced rows. Always stamp `source` on writes and filter by it when reconciling synced vs. manual data so a re-sync never duplicates or clobbers user-entered events.
-- **Not yet wired**: there is no Google OAuth/sync router mounted in `main.py` yet, and no stored per-user Google tokens on the `User` model. When implementing, follow the existing patterns — a `prefix`-scoped `APIRouter` mounted in `main.py`, calendar fetch/normalize logic in `services/` (not the router), and every query scoped by `user_id == current_user.id`. Adding token storage to `User` is a schema change, so it requires dropping `aria.db` or re-running `seed.py` (no migrations).
+**What is wired:**
+- **`routers/google.py`** — mounted at `/auth/google`. Two endpoints:
+  - `GET /auth/google/authorize` — requires JWT auth, returns `{"auth_url": "..."}` for the frontend to redirect the user to Google consent.
+  - `GET /auth/google/callback` — Google redirects here after consent; fetches tokens, stores them as JSON in `User.google_tokens`, then redirects to `http://localhost:5173/dashboard?google=connected`.
+- **`User.google_tokens`** (`Text`, nullable) — stores the per-user OAuth token bundle as a JSON string (`token`, `refresh_token`, `token_uri`, `client_id`, `scopes`). This is a schema change: existing `aria.db` files lack the column and must be dropped or `seed.py` re-run.
+- **`OAUTHLIB_INSECURE_TRANSPORT=1`** — set in `main.py` at startup to allow HTTP during local dev. Must be removed or gated on an env var before any non-local deployment.
+
+**What is not yet wired:**
+- No endpoint to actually fetch and sync Google Calendar events into the `events` table.
+- No token refresh logic — stored tokens will expire and need to be refreshed via `google.oauth2.credentials.Credentials.refresh()`.
+
+**Key patterns to follow when building the sync endpoint:**
+- Re-read `User.google_tokens`, deserialize, and reconstruct `google.oauth2.credentials.Credentials` from the stored fields plus `GOOGLE_CLIENT_SECRET` from env (do not store `client_secret` in the DB).
+- Put calendar fetch/normalize logic in `services/` (not the router).
+- Write synced events with `source="google_calendar"` and filter by `source` when reconciling so re-syncs don't duplicate or clobber user-entered events.
+- Scope every query by `user_id == current_user.id`.
+
+**`source` provenance column**: `event` carries a `source` string, default `"manual"`, set to `"google_calendar"` for synced rows. Always stamp `source` on writes and filter by it when reconciling synced vs. manual data.
 
 ### Models
 SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `"google_calendar"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it.
