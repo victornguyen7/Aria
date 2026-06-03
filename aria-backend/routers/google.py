@@ -6,7 +6,7 @@ from routers.auth import get_current_user
 from models.user import User
 from google_auth_oauthlib.flow import Flow  # type: ignore
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import json
 
@@ -36,7 +36,7 @@ def _make_state_token(user_id: int) -> str:
     payload = {
         "sub": str(user_id),
         "type": "oauth_state",
-        "exp": datetime.utcnow() + timedelta(minutes=10),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
