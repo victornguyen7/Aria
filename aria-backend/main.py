@@ -13,6 +13,7 @@ from routers.courses import router as courses_router
 from routers.chat import router as chat_router
 from routers.briefing import router as briefing_router
 from routers.google import router as google_router
+from routers.calendar import router as calendar_router
 import os
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -38,6 +39,7 @@ app.include_router(courses_router)
 app.include_router(chat_router)
 app.include_router(briefing_router)
 app.include_router(google_router)
+app.include_router(calendar_router)
 
 @app.get("/health")
 def health():

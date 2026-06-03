@@ -50,7 +50,7 @@ Frontend reads `VITE_API_URL` (the backend base URL) via `import.meta.env`.
 ## Architecture
 
 ### Backend request flow
-`main.py` wires CORS (locked to `http://localhost:5173`) and mounts seven routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`.
+`main.py` wires CORS (locked to `http://localhost:5173`) and mounts eight routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`.
 
 - **Auth** (`routers/auth.py`, `models/auth.py`): JWT bearer tokens. Login uses FastAPI's `OAuth2PasswordRequestForm` where the `username` field is treated as the (lowercased) email. Passwords hashed with Argon2 (bcrypt fallback) via passlib. `get_current_user` is the dependency every protected route depends on — it decodes the JWT `sub` (email) and loads the `User`.
 - **Data ownership**: tasks/events/courses are always filtered by `user_id == current_user.id`. Follow this pattern for any new per-user query or mutation.
@@ -75,8 +75,14 @@ The app is being wired to pull a student's Google Calendar into the same `events
 - **`User.google_tokens`** (`Text`, nullable) — stores the per-user OAuth token bundle as a JSON string (`token`, `refresh_token`, `token_uri`, `client_id`, `scopes`). This is a schema change: existing `aria.db` files lack the column and must be dropped or `seed.py` re-run.
 - **`OAUTHLIB_INSECURE_TRANSPORT=1`** — set in `main.py` at startup to allow HTTP during local dev. Must be removed or gated on an env var before any non-local deployment.
 
+**What is wired (calendar sync):**
+- **`routers/calendar.py`** — mounted at `/calendar`. Two endpoints:
+  - `GET /calendar/sync` — requires JWT auth; fetches the next 7 days of events from the user's primary Google Calendar and upserts them into the `events` table. Returns `{message, total_fetched}`.
+  - `GET /calendar/status` — returns `{connected: bool, email}` for the authenticated user.
+- Events are keyed for deduplication by `source=f"google:{google_id}"`. Existing rows are updated in-place; new rows are inserted. All-day events (no `dateTime` on start) are skipped.
+- `end_time` defaults to `start + 1 hour` when Google does not provide an explicit end time, to satisfy the `nullable=False` DB constraint.
+
 **What is not yet wired:**
-- No endpoint to actually fetch and sync Google Calendar events into the `events` table.
 - No token refresh logic — stored tokens will expire and need to be refreshed via `google.oauth2.credentials.Credentials.refresh()`.
 
 **Key patterns to follow when building the sync endpoint:**

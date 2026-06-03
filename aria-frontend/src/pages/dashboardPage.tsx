@@ -27,12 +27,22 @@ export default function DashboardPage() {
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loadingBriefing, setLoadingBriefing] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [calendarSyncing, setCalendarSyncing] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { window.location.href = "/"; return; }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google") === "connected") {
+      setGoogleConnected(true);
+      window.history.replaceState({}, "", "/dashboard");
+    }
+
     fetchTasks();
     fetchBriefing();
+    checkCalendarStatus();
   }, []);
 
   const fetchTasks = async () => {
@@ -53,6 +63,36 @@ export default function DashboardPage() {
       console.error("Failed to load briefing");
     } finally {
       setLoadingBriefing(false);
+    }
+  };
+
+  const checkCalendarStatus = async () => {
+    try {
+      const res = await api.get("/calendar/status");
+      setGoogleConnected(res.data.connected);
+    } catch {
+      // silently fail — not critical
+    }
+  };
+
+  const connectGoogleCalendar = async () => {
+    try {
+      const res = await api.get("/auth/google/authorize");
+      window.location.href = res.data.auth_url;
+    } catch {
+      console.error("Failed to start Google OAuth");
+    }
+  };
+
+  const syncCalendar = async () => {
+    setCalendarSyncing(true);
+    try {
+      await api.get("/calendar/sync");
+      fetchBriefing();
+    } catch {
+      console.error("Calendar sync failed");
+    } finally {
+      setCalendarSyncing(false);
     }
   };
 
@@ -91,6 +131,15 @@ export default function DashboardPage() {
             <button onClick={() => (window.location.href = "/chat")} className="btn-ghost">
               Chat with ARIA
             </button>
+            {googleConnected ? (
+              <button onClick={syncCalendar} disabled={calendarSyncing} className="btn-cal-sync">
+                {calendarSyncing ? "Syncing…" : "↻ Sync Calendar"}
+              </button>
+            ) : (
+              <button onClick={connectGoogleCalendar} className="btn-cal-connect">
+                Connect Google Calendar
+              </button>
+            )}
             <button onClick={() => setShowModal(true)} className="btn-primary">
               + New task
             </button>

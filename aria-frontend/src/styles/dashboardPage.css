@@ -155,6 +155,43 @@ body {
   background: var(--surface);
 }
 
+.btn-cal-connect {
+  background: transparent;
+  color: #34a853;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(52, 168, 83, 0.35);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-cal-connect:hover {
+  background: rgba(52, 168, 83, 0.08);
+  border-color: rgba(52, 168, 83, 0.6);
+}
+
+.btn-cal-sync {
+  background: rgba(52, 168, 83, 0.1);
+  color: #34a853;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(52, 168, 83, 0.3);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-cal-sync:hover:not(:disabled) {
+  background: rgba(52, 168, 83, 0.18);
+  border-color: rgba(52, 168, 83, 0.55);
+}
+
+.btn-cal-sync:disabled {
+  color: rgba(52, 168, 83, 0.5);
+  border-color: rgba(52, 168, 83, 0.15);
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
