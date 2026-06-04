@@ -29,6 +29,8 @@ export default function DashboardPage() {
   const [showModal, setShowModal] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [calendarSyncing, setCalendarSyncing] = useState(false);
+  const [canvasSyncing, setCanvasSyncing] = useState(false);
+  const [canvasSyncResult, setCanvasSyncResult] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -81,6 +83,23 @@ export default function DashboardPage() {
       window.location.href = res.data.auth_url;
     } catch {
       console.error("Failed to start Google OAuth");
+    }
+  };
+
+  const syncCanvas = async () => {
+    setCanvasSyncing(true);
+    try {
+      await api.post("/canvas/sync/courses");
+      await api.post("/canvas/sync/assignments");
+      fetchTasks();
+      fetchBriefing();
+      setCanvasSyncResult("Canvas synced");
+      setTimeout(() => setCanvasSyncResult(null), 3000);
+    } catch {
+      console.error("Canvas sync failed");
+      setCanvasSyncResult("Sync failed");
+    } finally {
+      setCanvasSyncing(false);
     }
   };
 
@@ -140,6 +159,9 @@ export default function DashboardPage() {
                 Connect Google Calendar
               </button>
             )}
+            <button onClick={syncCanvas} disabled={canvasSyncing} className="btn-cal-sync">
+              {canvasSyncing ? "Syncing…" : canvasSyncResult ?? "↻ Sync Canvas"}
+            </button>
             <button onClick={() => setShowModal(true)} className="btn-primary">
               + New task
             </button>
