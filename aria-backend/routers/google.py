@@ -17,7 +17,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
 ALGORITHM = "HS256"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-def get_flow():
+# In-memory store: state -> code_verifier (populated during /authorize,
+# consumed during /callback). Fine for a single-process local dev server.
+_pending_verifiers: dict[str, str | None] = {}
+
+def make_flow() -> Flow:
     return Flow.from_client_config(
         {
             "web": {
@@ -51,7 +55,7 @@ def _decode_state_token(state: str) -> int:
 
 @router.get("/authorize")
 def authorize(current_user: User = Depends(get_current_user)):
-    flow = get_flow()
+    flow = make_flow()
     state = _make_state_token(current_user.id)
     auth_url, _ = flow.authorization_url(
         access_type="offline",
@@ -59,6 +63,9 @@ def authorize(current_user: User = Depends(get_current_user)):
         prompt="consent",
         state=state,
     )
+    # Capture whatever code_verifier the library may have generated so we
+    # can pass it back during token exchange in /callback.
+    _pending_verifiers[state] = getattr(flow, "code_verifier", None)
     return {"auth_url": auth_url}
 
 @router.get("/callback")
@@ -66,7 +73,13 @@ def callback(code: str, state: str, db: Session = Depends(get_db)):
     user_id = _decode_state_token(state)
 
     try:
-        flow = get_flow()
+        flow = make_flow()
+
+        # Restore the code_verifier (may be None if PKCE wasn't used).
+        code_verifier = _pending_verifiers.pop(state, None)
+        if code_verifier is not None:
+            flow.code_verifier = code_verifier
+
         flow.fetch_token(code=code)
         credentials = flow.credentials
 
