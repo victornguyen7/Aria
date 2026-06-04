@@ -50,7 +50,7 @@ Frontend reads `VITE_API_URL` (the backend base URL) via `import.meta.env`.
 ## Architecture
 
 ### Backend request flow
-`main.py` wires CORS (locked to `http://localhost:5173`) and mounts eight routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`.
+`main.py` wires CORS (locked to `http://localhost:5173`) and mounts nine routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`, `canvas`.
 
 - **Auth** (`routers/auth.py`, `models/auth.py`): JWT bearer tokens. Login uses FastAPI's `OAuth2PasswordRequestForm` where the `username` field is treated as the (lowercased) email. Passwords hashed with Argon2 (bcrypt fallback) via passlib. `get_current_user` is the dependency every protected route depends on — it decodes the JWT `sub` (email) and loads the `User`.
 - **Data ownership**: tasks/events/courses are always filtered by `user_id == current_user.id`. Follow this pattern for any new per-user query or mutation.
@@ -82,6 +82,8 @@ The app is being wired to pull a student's Google Calendar into the same `events
 - Events are keyed for deduplication by `source=f"google:{google_id}"`. Existing rows are updated in-place; new rows are inserted. All-day events (no `dateTime` on start) are skipped.
 - `end_time` defaults to `start + 1 hour` when Google does not provide an explicit end time, to satisfy the `nullable=False` DB constraint.
 
+**PKCE / OAuth fix:** `routers/google.py` disables PKCE by capturing `flow.code_verifier` in an in-memory dict (`_pending_verifiers`, keyed by `state`) during `/authorize` and restoring it on the new Flow instance in `/callback`. This is necessary because `google-auth-oauthlib` generates a verifier on the first Flow instance but the callback creates a fresh one. Server-side flows with a `client_secret` don't need PKCE, but the library enables it by default.
+
 **What is not yet wired:**
 - No token refresh logic — stored tokens will expire and need to be refreshed via `google.oauth2.credentials.Credentials.refresh()`.
 
@@ -92,6 +94,18 @@ The app is being wired to pull a student's Google Calendar into the same `events
 - Scope every query by `user_id == current_user.id`.
 
 **`source` provenance column**: `event` carries a `source` string, default `"manual"`, set to `"google_calendar"` for synced rows. Always stamp `source` on writes and filter by it when reconciling synced vs. manual data.
+
+### Canvas integration (mock)
+`routers/canvas.py` — mounted at `/canvas`. Provides a mock Canvas LMS integration using hardcoded course and assignment data. All routes require JWT auth.
+
+- `GET /canvas/courses` — returns `MOCK_COURSES` (3 courses: CS201, MATH202, CS301).
+- `GET /canvas/assignments` — returns assignments with due dates computed relative to the current request time (not import time).
+- `POST /canvas/sync/courses` — upserts mock courses into the `courses` table, deduplicating by `course.canvas_id`.
+- `POST /canvas/sync/assignments` — upserts mock assignments into the `tasks` table, deduplicating by `task.title`. Priority is derived from due-date proximity (overdue or ≤2 days → high, ≤5 days → medium, else low). Status defaults to `todo`.
+
+**Known gaps in the `task` model:** `task` has no `source` or `canvas_id` columns yet. Until those are added, deduplication is title-only and re-syncing may produce duplicates if titles change. Adding those columns requires dropping `aria.db` or re-running `seed.py`.
+
+**Sync order matters:** run `POST /canvas/sync/courses` before `POST /canvas/sync/assignments` so the course_code → course_id map is populated.
 
 ### Models
 SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `"google_calendar"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it.
