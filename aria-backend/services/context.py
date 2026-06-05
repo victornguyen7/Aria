@@ -3,7 +3,7 @@ from models.user import User
 from models.task import task, status, priority
 from models.event import event
 from models.course import course
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def score_priority(task_obj: task, now: datetime) -> float:
     score = 0.0
@@ -44,9 +44,14 @@ def get_priority_tasks(user_id: int, db: Session, limit: int = 5) -> list:
 
 def build_user_context(user: User, db: Session) -> str:
     now = datetime.utcnow()
+    today_time = now.replace(hour=23, minute=59, second=59)
+    week_time = now + timedelta(days=7)
 
     tasks = db.query(task).filter(task.user_id == user.id).all()
-    events = db.query(event).filter(event.user_id == user.id, event.start_time >= now).order_by(event.start_time).all()
+
+    all_events = db.query(event).filter(event.user_id == user.id).all()
+    google_events = [e for e in all_events if e.source.startswith("google:") and e.start_time >= now and e.start_time <= week_time]
+
     courses = db.query(course).filter(course.user_id == user.id).all()
 
     overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != status.done.value]
@@ -54,10 +59,25 @@ def build_user_context(user: User, db: Session) -> str:
     done = [t for t in tasks if t.status == status.done.value]
 
     upcoming_events = sorted(
-        [e for e in events if e.start_time >= now],
+        [e for e in all_events if e.start_time >= now],
         key=lambda e: e.start_time
     )[:5]
 
+    today_events = sorted(
+        [e for e in all_events if e.start_time >= now and e.start_time <= today_time],
+        key=lambda e: e.start_time
+    )
+
+    priority_tasks = get_priority_tasks(user.id, db)
+
+    google_section = ""
+    if google_events:
+        sorted_google = sorted(google_events, key=lambda e: e.start_time)
+        google_section = f"""
+GOOGLE CALENDAR EVENTS (next 7 days, {len(sorted_google)} total)
+{chr(10).join(f"- {e.title} on {e.start_time.strftime('%A %b %d at %I:%M %p')}" for e in sorted_google)}
+"""
+        
     context = f"""
     STUDENT PROFILE
     User ID: {user.id}
@@ -74,8 +94,12 @@ def build_user_context(user: User, db: Session) -> str:
     Done: ({len(done)} total)
     {chr(10).join(f"- {t.title}" for t in done) if done else "None."}
 
-    Events: ({len(upcoming_events)} total)
-    {chr(10).join(f"- {e.title} (At: {e.start_time.strftime('%Y-%m-%d %H:%M')})" for e in upcoming_events) if upcoming_events else "No upcoming events."}
-    """
+    Today's schedule ({len(today_events)} events)
+    {chr(10).join(f"- {e.title} at {e.start_time.strftime('%I:%M %p')} {'[Google]' if e.source.startswith('google:') else '[Manual]'}" for e in today_events) or "Nothing scheduled today."}
+
+    Upcoming events (next 7 days, {len(upcoming_events)} total)
+    {chr(10).join(f"- {e.title} on {e.start_time.strftime('%A %b %d at %I:%M %p')} {'[Google]' if e.source.startswith('google:') else '[Manual]'}" for e in upcoming_events) or "No upcoming events."}
+    {google_section}
+    """.strip()
 
     return context.strip()

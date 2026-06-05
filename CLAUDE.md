@@ -58,7 +58,7 @@ Frontend reads `VITE_API_URL` (the backend base URL) via `import.meta.env`.
 ### The LLM layer — this is the heart of the app
 The AI features don't call the model with raw user input alone; they inject the student's real data:
 
-1. `services/context.py` → `build_user_context(user, db)` queries the user's tasks/events/courses and formats them into a plain-text "STUDENT DATA" block (overdue / upcoming / done tasks, upcoming events, courses).
+1. `services/context.py` → `build_user_context(user, db)` queries the user's tasks/events/courses and formats them into a plain-text context block covering: overdue/upcoming/done tasks, today's schedule, upcoming events (next 7 days, labelled `[Google]` or `[Manual]`), courses, and an optional `GOOGLE CALENDAR EVENTS` section when Google-synced events exist. Google events are identified by `source.startswith("google:")` — note no space after the colon.
 2. `services/prompt.py` → `build_system_prompt(context)` wraps that block in ARIA's persona + rules.
 3. `routers/chat.py` sends `[system_prompt, ...history[-10:], user_message]` to Groq. `/chat/stream` streams SSE chunks (`data: {"content": ...}\n\n`); `/chat/message` returns the full response.
 4. `routers/briefing.py` (`GET /briefing/`) is separate: it builds its own one-off prompt for a structured daily briefing (GREETING/FOCUS/HEADS UP/MOTIVATION) and returns both the LLM `summary` and structured JSON (focus_task, counts, today's events, top tasks) for the dashboard to render.
@@ -93,7 +93,7 @@ The app is being wired to pull a student's Google Calendar into the same `events
 - Write synced events with `source="google_calendar"` and filter by `source` when reconciling so re-syncs don't duplicate or clobber user-entered events.
 - Scope every query by `user_id == current_user.id`.
 
-**`source` provenance column**: `event` carries a `source` string, default `"manual"`, set to `"google_calendar"` for synced rows. Always stamp `source` on writes and filter by it when reconciling synced vs. manual data.
+**`source` provenance column**: `event` carries a `source` string, default `"manual"`. Google-synced rows use `source=f"google:{google_event_id}"` (no space). Always use `source.startswith("google:")` to detect Google events — never equality-check the full string. Always stamp `source` on writes and filter by it when reconciling synced vs. manual data.
 
 ### Canvas integration (mock)
 `routers/canvas.py` — mounted at `/canvas`. Provides a mock Canvas LMS integration using hardcoded course and assignment data. All routes require JWT auth.
@@ -108,7 +108,7 @@ The app is being wired to pull a student's Google Calendar into the same `events
 **Sync order matters:** run `POST /canvas/sync/courses` before `POST /canvas/sync/assignments` so the course_code → course_id map is populated.
 
 ### Models
-SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `"google_calendar"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it.
+SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `f"google:{google_id}"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it. `task` also has optional `grade_max` and `grade_earned` float columns for Canvas grade data; the frontend `Task` type in `src/types/index.ts` includes these as `number | null`.
 
 ### Frontend
 - `src/App.tsx` — React Router with a `ProtectedRoute` that gates `/dashboard` and `/chat` on a `token` in `localStorage`; `/` is the auth page.

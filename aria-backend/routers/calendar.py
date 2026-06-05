@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from googleapiclient.discovery import build  # type: ignore
 from google.oauth2.credentials import Credentials  # type: ignore
+from google.auth.transport.requests import Request  # type: ignore
 from database import get_db
 from routers.auth import get_current_user
 from models.user import User
@@ -32,6 +33,15 @@ def get_google_credentials(user: User) -> Credentials:
 @router.get("/sync")
 def sync_calendar(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     credentials = get_google_credentials(current_user)
+
+    # Refresh the access token if expired
+    if credentials.expired and credentials.refresh_token:
+        credentials.refresh(Request())
+        # Persist the new token back to the DB
+        tokens = json.loads(current_user.google_tokens)
+        tokens["token"] = credentials.token
+        current_user.google_tokens = json.dumps(tokens)
+        db.commit()
 
     try:
         service = build("calendar", "v3", credentials=credentials)
@@ -98,6 +108,8 @@ def sync_calendar(db: Session = Depends(get_db), current_user: User = Depends(ge
             "total_fetched": len(google_events),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error syncing calendar: {e}")
 
