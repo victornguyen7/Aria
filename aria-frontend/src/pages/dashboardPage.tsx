@@ -4,6 +4,12 @@ import type { Task } from "../types";
 import AddTaskModal from "../components/addTaskModal";
 import TodayTimeline from "../components/todayTimeline";
 import ReactMarkdown from "react-markdown";
+import {
+  BriefingSkeleton,
+  FocusTaskSkeleton,
+  TaskListSkeleton,
+  SkeletonLine,
+} from "../components/Skeleton";
 import "../styles/dashboardPage.css";
 
 interface Conflict {
@@ -33,6 +39,7 @@ const priorityPill = {
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loadingBriefing, setLoadingBriefing] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -63,6 +70,8 @@ export default function DashboardPage() {
     } catch {
       localStorage.removeItem("token");
       window.location.href = "/";
+    } finally {
+      setLoadingTasks(false);
     }
   };
 
@@ -189,33 +198,31 @@ export default function DashboardPage() {
           <div className="col-span-2 space-y-6">
 
             {/* AI Briefing card */}
-            <div className="dashboard-block animate-slide-up">
-              <div className="flex items-center gap-2 mb-3">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                  style={{ background: "var(--accent)" }}
-                >
-                  A
+            {loadingBriefing ? (
+              <BriefingSkeleton />
+            ) : briefing ? (
+              <div className="dashboard-block animate-slide-up">
+                <div className="flex items-center gap-2 mb-3">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    A
+                  </div>
+                  <p className="text-sm font-medium" style={{ color: "var(--accent)" }}>ARIA's daily briefing</p>
                 </div>
-                <p className="text-sm font-medium" style={{ color: "var(--accent)" }}>ARIA's daily briefing</p>
-              </div>
-              {loadingBriefing ? (
-                <div className="flex flex-col gap-2">
-                  <div className="h-4 rounded animate-pulse w-3/4" style={{ background: "var(--surface-2)" }} />
-                  <div className="h-4 rounded animate-pulse w-full" style={{ background: "var(--surface-2)" }} />
-                  <div className="h-4 rounded animate-pulse w-2/3" style={{ background: "var(--surface-2)" }} />
-                </div>
-              ) : briefing ? (
                 <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none" style={{ color: "var(--text-muted)" }}>
                   <ReactMarkdown>{briefing.summary}</ReactMarkdown>
                 </div>
-              ) : (
-                <p className="text-sm" style={{ color: "var(--text-dim)" }}>Could not load briefing.</p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-dim)" }}>Could not load briefing.</p>
+            )}
 
             {/* Focus task */}
-            {briefing?.focus_task && (
+            {loadingBriefing ? (
+              <FocusTaskSkeleton />
+            ) : briefing?.focus_task ? (
               <div className="dashboard-block animate-slide-up" style={{ animationDelay: "0.1s", animationFillMode: "both" }}>
                 <p className="text-xs font-medium uppercase tracking-widest mb-2" style={{ color: "var(--accent)" }}>
                   Today's focus
@@ -235,7 +242,7 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Conflicts */}
             {briefing && briefing.conflicts && briefing.conflicts.length > 0 && (
@@ -301,6 +308,13 @@ export default function DashboardPage() {
 
         {/* Task sections */}
         <div className="mt-16 space-y-8">
+          {loadingTasks ? (
+            <div>
+              <SkeletonLine className="h-3 w-20 mb-3" />
+              <TaskListSkeleton />
+            </div>
+          ) : (
+          <>
           {[
             { label: "Overdue", items: overdue, accent: "text-red-400" },
             { label: "Upcoming", items: upcoming, accent: "text-white" },
@@ -377,6 +391,8 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : null
+          )}
+          </>
           )}
         </div>
       </div>
