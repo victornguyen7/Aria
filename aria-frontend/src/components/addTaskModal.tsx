@@ -49,7 +49,7 @@ export default function AddTaskModal({ isOpen, onClose, onCreated }: addTaskModa
 
   return (
     <div className={`modal ${isOpen ? "is-open" : ""}`}>
-      <div className="modal-content">
+      <div className="modal-content animate-scale-in">
         <h2>Create Task</h2>
         <form onSubmit={handleSubmit}>
           <input

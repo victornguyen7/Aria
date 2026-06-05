@@ -7,6 +7,7 @@ from models.user import User
 from models.task import task, status
 from models.event import event
 from services.context import build_user_context, get_priority_tasks
+from services.conflict import detect_conflict
 import os
 import logging
 from datetime import datetime
@@ -92,9 +93,12 @@ UPCOMING: {len(upcoming)} task(s) remaining
             "description": t.description or None,
         }
 
+    conflicts = detect_conflict(current_user.id, db)
+
     return {
         "summary": summary,
         "focus_task": focus_task,
+        "conflicts": conflicts[:3],
         "overdue_count": len(overdue),
         "upcoming_count": len(upcoming),
         "today_events":[{
@@ -111,4 +115,13 @@ UPCOMING: {len(upcoming)} task(s) remaining
             "status": t.status.value,
         } for t in top],
         "generated_at": now.isoformat()
+    }
+
+@router.get("/conflicts")
+def get_conflicts(user_id = Depends(get_current_user), db:Session = Depends(get_db)):
+    conflicts = detect_conflict(user_id, db)
+    return {
+        "conflicts": conflicts,
+        "total": len(conflicts),
+        "has_critical": any(c["severity"] == "critical" for c in conflicts),
     }

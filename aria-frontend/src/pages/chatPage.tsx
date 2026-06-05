@@ -181,7 +181,11 @@ export default function ChatPage() {
 
       <div className="chat-messages">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`message message-${msg.role}`}>
+          <div
+            key={idx}
+            className={`message message-${msg.role} animate-slide-up`}
+            style={{ animationDelay: `${idx * 0.03}s`, animationFillMode: "both" }}
+          >
             <div className="message-avatar">
               {msg.role === "user" ? "👤" : "🤖"}
             </div>
