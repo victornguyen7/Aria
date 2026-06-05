@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, func
+from sqlalchemy import Column, Float, Integer, String, DateTime, ForeignKey, Enum, func
 from database import Base
 import enum
 
@@ -19,6 +19,8 @@ class task(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, index=True)
     description = Column(String, index=True, nullable=True)
+    grade_max = Column(Float, nullable=True)
+    grade_earned = Column(Float, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     due_date = Column(DateTime(timezone=True), nullable=True)

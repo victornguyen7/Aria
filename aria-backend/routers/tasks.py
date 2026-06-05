@@ -25,6 +25,8 @@ class TaskUpdate(BaseModel):
     due_date: Optional[datetime] = None # type: ignore
     priority: Optional[task_priority] = None
     status: Optional[task_status] = None
+    grade_max: Optional[float] = None
+    grade_earned: Optional[float] = None
 
 @router.get("/")
 def get_tasks(db : Session = Depends(get_db), current_user: User = Depends(get_current_user)):

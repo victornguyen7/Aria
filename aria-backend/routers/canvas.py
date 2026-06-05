@@ -41,6 +41,7 @@ MOCK_ASSIGNMENT_TEMPLATES = [
         "description": "Implement a BST with insert, delete, and search methods.",
         "course_code": "CS201",
         "due_offset_days": 2,
+        # No grade yet — upcoming assignment
     },
     {
         "canvas_id": "canvas-002",
@@ -48,6 +49,8 @@ MOCK_ASSIGNMENT_TEMPLATES = [
         "description": "Covers sections 7.1 through 7.4.",
         "course_code": "MATH202",
         "due_offset_days": 3,
+        "grade_max": 50,
+        "grade_earned": 43,  # graded: 43/50
     },
     {
         "canvas_id": "canvas-003",
@@ -55,6 +58,8 @@ MOCK_ASSIGNMENT_TEMPLATES = [
         "description": "Write 300 words responding to the assigned reading on AI bias.",
         "course_code": "CS301",
         "due_offset_days": 5,
+        "grade_max": 25,
+        # grade_earned omitted — submitted but not yet graded
     },
     {
         "canvas_id": "canvas-004",
@@ -62,6 +67,8 @@ MOCK_ASSIGNMENT_TEMPLATES = [
         "description": "Submit a 1-page proposal for your midterm project.",
         "course_code": "CS301",
         "due_offset_days": -1,  # already past due
+        "grade_max": 50,
+        "grade_earned": 47,  # graded: 47/50
     },
     {
         "canvas_id": "canvas-005",
@@ -69,6 +76,8 @@ MOCK_ASSIGNMENT_TEMPLATES = [
         "description": "Problems 1-20 from chapter 8.",
         "course_code": "MATH202",
         "due_offset_days": 7,
+        "grade_max": 100,
+        # grade_earned omitted — not yet graded
     },
 ]
 
@@ -172,6 +181,8 @@ def sync_assignments(db: Session = Depends(get_db), current_user: User = Depends
             description=assignment.get("description"),
             due_date=due_date,
             priority=_compute_priority(due_date),
+            grade_max=assignment.get("grade_max"),
+            grade_earned=assignment.get("grade_earned"),
             status=status.todo,
         ))
         synced += 1

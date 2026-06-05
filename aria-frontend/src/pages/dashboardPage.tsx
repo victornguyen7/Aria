@@ -302,6 +302,16 @@ export default function DashboardPage() {
                         {task.description && (
                           <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-dim)" }}>{task.description}</p>
                         )}
+                        {task.grade_max != null && (
+                          <p className="text-xs mt-0.5" style={{ color: "var(--text-dim)" }}>
+                            Grade:{" "}
+                            <span style={{ color: "var(--text-muted)" }}>
+                              {task.grade_earned != null
+                                ? `${task.grade_earned} / ${task.grade_max}`
+                                : `— / ${task.grade_max}`}
+                            </span>
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {task.due_date && (

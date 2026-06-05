@@ -11,6 +11,8 @@ export interface Task {
     due_date: Date;
     created_at: Date;
     updated_at: Date;
+    grade_max?: number | null;
+    grade_earned?: number | null;
 }
 
 export interface Event {
