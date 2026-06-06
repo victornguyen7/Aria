@@ -37,6 +37,7 @@ app = FastAPI(title = "Aria API")
 _origins = [
     "http://localhost:5173",
     "http://localhost:4173",
+    "https://aria-pc7njgdep-aria-s-projects13.vercel.app/"
 ]
 if config.IS_PRODUCTION:
     frontend = os.getenv("FRONTEND_ORIGIN", "")
