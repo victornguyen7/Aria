@@ -1,6 +1,10 @@
 #import fastapi and CorsMiddleware, allowing frontend to communicate with backend
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from database import SessionLocal
 from database import Base, engine
 import models.user
 import models.task
@@ -16,8 +20,13 @@ from routers.google import router as google_router
 from routers.calendar import router as calendar_router
 from routers.canvas import router as canvas_router
 import os
+import logging
 
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+if os.getenv("ENV", "development") == "development":
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 Base.metadata.create_all(bind=engine)  # creates tables on startup
 
@@ -32,6 +41,32 @@ app.add_middleware(
 )
 #this will help the frontend sever (localhsot: 5173) communicate with the backend sever
 #(localhost: 8080) and use api methods, get, post, requests,...
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=400,
+        content={"detail": exc.errors()},
+    )
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    logger.error(f"SQLAlchemy error: {exc}")
+    # Note: session rollback is best handled in get_db's except block
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unexpected error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 app.include_router(auth_router)
 app.include_router(tasks_router)
