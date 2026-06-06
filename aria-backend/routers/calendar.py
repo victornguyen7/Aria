@@ -8,8 +8,8 @@ from routers.auth import get_current_user
 from models.user import User
 from models.event import event as EventModel
 from datetime import datetime, timedelta, timezone
+from config import config
 import json
-import os
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
@@ -26,7 +26,7 @@ def get_google_credentials(user: User) -> Credentials:
         refresh_token=tokens.get("refresh_token"),
         token_uri=tokens["token_uri"],
         client_id=tokens["client_id"],
-        client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+        client_secret=config.GOOGLE_CLIENT_SECRET,
         scopes=tokens["scopes"],
     )
 

@@ -8,12 +8,12 @@ from routers.auth import get_current_user
 from models.user import User
 from services.context import build_user_context
 from services.prompt import build_system_prompt
-import os
+from config import config
 import json
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=config.GROQ_API_KEY)
 
 class ChatMessage(BaseModel):
     message: str
@@ -22,7 +22,7 @@ class ChatMessage(BaseModel):
 
 def stream_chat_response(messages: list[dict]) -> str: # type: ignore
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=config.GROQ_MODEL,
         messages=messages,
         stream=True
     )
@@ -67,7 +67,7 @@ def chat_message_endpoint(chat_message: ChatMessage, db: Session = Depends(get_d
     messages.append({"role": "user", "content": chat_message.message})
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=config.GROQ_MODEL,
         messages=messages,
         max_tokens=1000
     )

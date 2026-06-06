@@ -8,7 +8,7 @@ from models.task import task, status
 from models.event import event
 from services.context import build_user_context, get_priority_tasks
 from services.conflict import detect_conflict
-import os
+from config import config
 import logging
 from datetime import datetime
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=config.GROQ_API_KEY)
 
 @router.get("/")
 def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -71,7 +71,7 @@ UPCOMING: {len(upcoming)} task(s) remaining
     
     try:
         response = client.chat.completions.create(
-            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            model=config.GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
         )

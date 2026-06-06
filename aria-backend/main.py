@@ -19,25 +19,35 @@ from routers.briefing import router as briefing_router
 from routers.google import router as google_router
 from routers.calendar import router as calendar_router
 from routers.canvas import router as canvas_router
+from config import config
 import os
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-if os.getenv("APP_ENV") != "production":
+if not config.IS_PRODUCTION:
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 Base.metadata.create_all(bind=engine)  # creates tables on startup
 
 app = FastAPI(title = "Aria API")
 
+_origins = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+]
+if config.IS_PRODUCTION:
+    frontend = os.getenv("FRONTEND_ORIGIN", "")
+    if frontend:
+        _origins.append(frontend)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = ["http://localhost:5173"],
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
+    allow_origins=_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 #this will help the frontend sever (localhsot: 5173) communicate with the backend sever
 #(localhost: 8080) and use api methods, get, post, requests,...

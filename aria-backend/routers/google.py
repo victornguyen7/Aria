@@ -7,15 +7,14 @@ from models.user import User
 from google_auth_oauthlib.flow import Flow  # type: ignore
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
-import os
+from config import config
 import json
 
 router = APIRouter(prefix="/auth/google", tags=["google"])
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
+SECRET_KEY = config.SECRET_KEY
 ALGORITHM = "HS256"
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # In-memory store: state -> code_verifier (populated during /authorize,
 # consumed during /callback). Fine for a single-process local dev server.
@@ -25,15 +24,15 @@ def make_flow() -> Flow:
     return Flow.from_client_config(
         {
             "web": {
-                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                "client_id": config.GOOGLE_CLIENT_ID,
+                "client_secret": config.GOOGLE_CLIENT_SECRET,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI")],
+                "redirect_uris": [config.GOOGLE_REDIRECT_URI],
             }
         },
         scopes=SCOPES,
-        redirect_uri=os.getenv("GOOGLE_REDIRECT_URI"),
+        redirect_uri=config.GOOGLE_REDIRECT_URI,
     )
 
 def _make_state_token(user_id: int) -> str:
@@ -96,7 +95,7 @@ def callback(code: str, state: str, db: Session = Depends(get_db)):
         })
         db.commit()
 
-        return RedirectResponse(url=f"{FRONTEND_URL}/dashboard?google=connected")
+        return RedirectResponse(url=f"{config.FRONTEND_URL}/dashboard?google=connected")
     except HTTPException:
         raise
     except Exception as e:

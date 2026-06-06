@@ -6,9 +6,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
-import os
+from config import config
 
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
+SECRET_KEY = config.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
