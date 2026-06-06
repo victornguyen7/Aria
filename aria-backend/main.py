@@ -25,7 +25,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-if os.getenv("ENV", "development") == "development":
+if os.getenv("APP_ENV") != "production":
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 Base.metadata.create_all(bind=engine)  # creates tables on startup
