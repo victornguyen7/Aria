@@ -254,6 +254,56 @@ select:focus-visible {
 }
 input:focus, textarea:focus, button:focus, select:focus { outline: none; }
 
+/* ============= Toast Notifications ============= */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  backdrop-filter: blur(8px);
+  animation: toastIn 0.25s ease-out both;
+  pointer-events: all;
+  max-width: 340px;
+}
+
+.toast-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.toast-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.toast-icon {
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ============= Reduced Motion ============= */
 @media (prefers-reduced-motion: reduce) {
   * {

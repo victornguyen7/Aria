@@ -111,7 +111,26 @@ The app is being wired to pull a student's Google Calendar into the same `events
 SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `f"google:{google_id}"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it. `task` also has optional `grade_max` and `grade_earned` float columns for Canvas grade data; the frontend `Task` type in `src/types/index.ts` includes these as `number | null`.
 
 ### Frontend
-- `src/App.tsx` — React Router with a `ProtectedRoute` that gates `/dashboard` and `/chat` on a `token` in `localStorage`; `/` is the auth page.
-- `src/api/axios.ts` — shared axios instance; a request interceptor attaches `Authorization: Bearer <token>` from `localStorage` automatically. Use this instance for all API calls.
+- `src/App.tsx` — React Router with a `ProtectedRoute` that gates `/dashboard` and `/chat` on a `token` in `localStorage`; `/` is the auth page. The entire app is wrapped in `<ErrorBoundary><ToastProvider>` — both are mounted here so all pages can use `useToast()` and render errors are caught globally.
+- `src/api/axios.ts` — shared axios instance; a request interceptor attaches `Authorization: Bearer <token>` from `localStorage` automatically. A response interceptor handles 401s globally: clears the token and redirects to `/`, except on the `/auth/token` login endpoint (so bad-password errors still surface in the form). Use this instance for all API calls.
 - `src/types/index.ts` — `Task` / `Event` / `Course` interfaces mirroring the backend models.
 - Pages: `authPage`, `dashboardPage`, `chatPage`; per-page CSS in `src/styles/`. Tailwind v4 is configured via `@tailwindcss/postcss`.
+
+### Frontend components
+- `src/components/errorBoundary.tsx` — React class component error boundary. Accepts an optional `fallback` prop; otherwise renders a built-in "Something went wrong" screen with a "Try again" button that resets state. Wrap any subtree that might throw during render.
+- `src/components/Toast.tsx` — context-based toast system. `ToastProvider` manages toast state (auto-dismiss after 3.5 s). `useToast()` returns `{ errorToast, successToast }` — call these anywhere inside the provider. `ToastContainer` reads from context and renders the fixed bottom-right stack; place it once at the bottom of a page's JSX return.
+- `src/components/Skeleton.tsx` — loading skeleton primitives: `SkeletonLine`, `SkeletonCard`, `BriefingSkeleton`, `FocusTaskSkeleton`, `TaskListSkeleton`. Use these whenever `loadingBriefing` or `loadingTasks` is true instead of showing blank space.
+- `src/components/addTaskModal.tsx` — modal for creating tasks. Uses CSS classes `modal` / `modal-content`; `animate-scale-in` applied to the card.
+- `src/components/todayTimeline.tsx` — timeline view of today's events and tasks.
+
+### Dashboard loading states
+`DashboardPage` tracks two separate loading flags: `loadingBriefing` (briefing + focus task) and `loadingTasks` (task list). Pattern: show the matching skeleton component while loading, render real content after, never show blank space.
+
+### Conflict detection
+`services/conflict.py` → `detect_conflict(user_id, db)` scans the next 7 days and returns conflicts sorted by severity (`critical` → `high` → `medium`). Three types: `due_during_event` (task due inside an event window), `due_before_event` (task due < 1 hour before event starts), `overdue_high_priority` (overdue tasks that are not low priority). The briefing endpoint calls this and includes `conflicts[:3]` in its response. The dashboard renders them in a collapsible section after the focus task card. Loop variables inside `detect_conflict` use `t` / `e` (not `task` / `event`) to avoid shadowing the imported model classes.
+
+### Animations
+`tailwind.config.js` extends Tailwind with four custom animations: `animate-fade-in` (page wrapper), `animate-slide-up` (cards, with optional `animationDelay` for stagger), `animate-scale-in` (stat cards, modal), `animate-slide-down`. Task rows use `hover:scale-[1.01] transition-all duration-200`.
+
+### Error handling — backend (`main.py`)
+Three exception handlers are registered: `RequestValidationError` → 400, `SQLAlchemyError` → 500, catch-all `Exception` → 500. **Known gap:** `HTTPException` is a subclass of `Exception`, so it must be handled before the catch-all or it will be swallowed as a 500. The `get_db` dependency should rollback on exception before closing the session. `OAUTHLIB_INSECURE_TRANSPORT=1` is currently set unconditionally — gate it on `ENV != production` before any non-local deployment.

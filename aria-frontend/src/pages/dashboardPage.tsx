@@ -10,6 +10,7 @@ import {
   TaskListSkeleton,
   SkeletonLine,
 } from "../components/Skeleton";
+import { useToast, ToastContainer } from "../components/Toast";
 import "../styles/dashboardPage.css";
 
 interface Conflict {
@@ -46,7 +47,7 @@ export default function DashboardPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [calendarSyncing, setCalendarSyncing] = useState(false);
   const [canvasSyncing, setCanvasSyncing] = useState(false);
-  const [canvasSyncResult, setCanvasSyncResult] = useState<string | null>(null);
+  const { errorToast, successToast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -111,11 +112,9 @@ export default function DashboardPage() {
       await api.post("/canvas/sync/assignments");
       fetchTasks();
       fetchBriefing();
-      setCanvasSyncResult("Canvas synced");
-      setTimeout(() => setCanvasSyncResult(null), 3000);
+      successToast("Canvas synced successfully");
     } catch {
-      console.error("Canvas sync failed");
-      setCanvasSyncResult("Sync failed");
+      errorToast("Canvas sync failed. Please try again.");
     } finally {
       setCanvasSyncing(false);
     }
@@ -126,8 +125,9 @@ export default function DashboardPage() {
     try {
       await api.get("/calendar/sync");
       fetchBriefing();
+      successToast("Calendar synced successfully");
     } catch {
-      console.error("Calendar sync failed");
+      errorToast("Calendar sync failed. Please try again.");
     } finally {
       setCalendarSyncing(false);
     }
@@ -178,7 +178,7 @@ export default function DashboardPage() {
               </button>
             )}
             <button onClick={syncCanvas} disabled={canvasSyncing} className="btn-cal-sync">
-              {canvasSyncing ? "Syncing…" : canvasSyncResult ?? "↻ Sync Canvas"}
+              {canvasSyncing ? "Syncing…" : "↻ Sync Canvas"}
             </button>
             <button onClick={() => setShowModal(true)} className="btn-primary">
               + New task
@@ -407,6 +407,8 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      <ToastContainer />
     </div>
   );
 }

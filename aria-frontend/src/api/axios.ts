@@ -10,4 +10,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Skip redirect on the login endpoint itself
+      const url: string = error.config?.url ?? "";
+      if (!url.includes("/auth/token")) {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

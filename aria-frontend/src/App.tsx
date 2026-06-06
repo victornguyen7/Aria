@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import AuthPage from "./pages/authPage";
 import DashboardPage from './pages/dashboardPage';
 import ChatPage from './pages/chatPage';
+import ErrorBoundary from './components/errorBoundary';
+import { ToastProvider } from './components/Toast';
 
 // Protected route component - redirects to "/" if not authenticated
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -44,6 +46,8 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
+      <ToastProvider>
     <Router>
       <Routes>
         {/* Auth page - redirect to dashboard if already authenticated */}
@@ -76,5 +80,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }
