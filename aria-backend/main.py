@@ -48,8 +48,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 #this will help the frontend sever (localhsot: 5173) communicate with the backend sever
 #(localhost: 8080) and use api methods, get, post, requests,...
