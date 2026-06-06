@@ -75,6 +75,7 @@ export default function AddTaskModal({ isOpen, onClose, onCreated }: addTaskModa
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
           <button type="submit" disabled={loading}>
             {loading ? "Creating..." : "Create Task"}
           </button>
