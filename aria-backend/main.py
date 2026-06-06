@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from database import SessionLocal
@@ -54,11 +55,9 @@ app.add_middleware(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.error(f"Validation error: {exc.errors()}")
-    return JSONResponse(
-        status_code=400,
-        content={"detail": exc.errors()},
-    )
+    errors = jsonable_encoder(exc.errors(include_url=False))
+    logger.error(f"Validation error: {errors}")
+    return JSONResponse(status_code=400, content={"detail": errors})
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
