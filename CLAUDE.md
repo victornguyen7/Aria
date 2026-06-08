@@ -14,15 +14,18 @@ The frontend (dev server on `:5173`) talks to the backend (`:8080`) over REST + 
 ## Commands
 
 ### Backend (run from `aria-backend/`)
-A `.venv` is committed-adjacent; activate it before running Python.
+A `.venv` is committed-adjacent; activate it before running Python. Dependencies are pinned in `requirements.txt`.
 ```bash
 source .venv/bin/activate
+pip install -r requirements.txt         # install/sync dependencies
 uvicorn main:app --reload --port 8080   # serve API; auto-creates tables on startup
 python seed.py                          # WIPES all tables, then seeds a test user + sample data
 ```
-`seed.py` deletes every user/task/event/course and recreates a known login: `test@example.com` / `TestPass123!`. There is no migration tool — `Base.metadata.create_all` in `main.py` creates tables but does not alter existing ones, so a schema change requires dropping `aria.db` (or running `seed.py`).
+`seed.py` deletes every user/task/event/course and recreates a known login: `test@example.com` / `TestPass123!`. There is no migration tooling configured — `alembic` is listed in `requirements.txt` but there is no `alembic.ini` or `migrations/` directory. Tables are created by `Base.metadata.create_all` in `main.py`, which creates tables but does not alter existing ones, so a schema change requires dropping the database (or running `seed.py`).
 
-There is no test runner configured. `test_groq.py` and `test_login.py` are standalone scripts (`python test_login.py`), not a pytest suite.
+`railway.toml` defines the production start command (`uvicorn main:app --host 0.0.0.0 --port $PORT`) for Railway deployment.
+
+There is no test runner configured. `test_login.py` is a standalone script (`python test_login.py`), not a pytest suite.
 
 ### Frontend (run from `aria-frontend/`)
 ```bash
@@ -35,22 +38,25 @@ npm run preview
 
 ## Environment
 
-Backend reads `.env.local` first, then falls back to `.env` (see `database.py`). Required keys:
-- `DATABASE_URL` (default `sqlite:///./aria.db`)
-- `SECRET_KEY` — JWT signing secret (defaults to an insecure fallback if unset)
-- `GROQ_API_KEY` — required for `/chat` and `/briefing`
-- `GROQ_MODEL` — optional, defaults to `llama-3.3-70b-versatile`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth 2.0 client credentials from a Google Cloud project, for the Google Calendar integration (see below)
-- `GOOGLE_REDIRECT_URI` — the OAuth callback URL registered in that project (must match the authorized redirect URI exactly)
+Configuration is centralized in `config.py` (the `config` singleton), which loads `.env.local` first, then falls back to `.env` (mirroring `database.py`). Env keys:
+- `DATABASE_URL` — defaults to `sqlite:///./aria.db`. `database.py` rewrites a Railway-injected `postgresql://` URL to `postgresql+psycopg2://` so Postgres works in production (`psycopg2-binary` is a dependency).
+- `SECRET_KEY` — JWT signing secret. **Required** — `config.require_env` raises at startup if it is unset (no insecure fallback).
+- `GROQ_API_KEY` — **Required** (raises if unset); used by `/chat` and `/briefing`.
+- `GROQ_MODEL` — optional, defaults to `llama-3.3-70b-versatile`.
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth 2.0 client credentials from a Google Cloud project, for the Google Calendar integration (see below). Default to empty strings.
+- `GOOGLE_REDIRECT_URI` — the OAuth callback URL (default `http://localhost:8080/auth/google/callback`); must match the authorized redirect URI exactly.
+- `ENVIRONMENT` — `development` (default) or `production`; `config.IS_PRODUCTION` is derived from it and gates production-only behavior (CORS origins, OAuth insecure-transport).
+- `FRONTEND_URL` — default `http://localhost:5173`.
+- `FRONTEND_ORIGIN` — read in `main.py`; appended to the CORS allow-list when running in production.
 
 Frontend reads `VITE_API_URL` (the backend base URL) via `import.meta.env`.
 
-> **Dependencies are not pinned in a file.** There is no `requirements.txt` / `pyproject.toml`; packages live only in the committed-adjacent `.venv`. The Google libraries (`google-api-python-client`, `google-auth`, `google-auth-oauthlib`, `google-auth-httplib2`) are already installed there. If you add an import, install it into `.venv` — nothing else tracks it.
+> **Dependencies are pinned in `aria-backend/requirements.txt`.** Install/sync with `pip install -r requirements.txt`. The Google libraries (`google-api-python-client`, `google-auth`, `google-auth-oauthlib`, `google-auth-httplib2`), `groq`, `fastapi`, `SQLAlchemy`, and `psycopg2-binary` are all listed there. If you add an import, add the package to `requirements.txt` so it stays tracked.
 
 ## Architecture
 
 ### Backend request flow
-`main.py` wires CORS (locked to `http://localhost:5173`) and mounts nine routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`, `canvas`.
+`main.py` configures CORS from an origins list (`http://localhost:5173`, `http://localhost:4173`, plus `FRONTEND_ORIGIN` when `config.IS_PRODUCTION`) and mounts nine routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`, `canvas`. A `GET /health` endpoint returns `{"status": "ok"}`.
 
 - **Auth** (`routers/auth.py`, `models/auth.py`): JWT bearer tokens. Login uses FastAPI's `OAuth2PasswordRequestForm` where the `username` field is treated as the (lowercased) email. Passwords hashed with Argon2 (bcrypt fallback) via passlib. `get_current_user` is the dependency every protected route depends on — it decodes the JWT `sub` (email) and loads the `User`.
 - **Data ownership**: tasks/events/courses are always filtered by `user_id == current_user.id`. Follow this pattern for any new per-user query or mutation.
@@ -73,7 +79,7 @@ The app is being wired to pull a student's Google Calendar into the same `events
   - `GET /auth/google/authorize` — requires JWT auth, returns `{"auth_url": "..."}` for the frontend to redirect the user to Google consent.
   - `GET /auth/google/callback` — Google redirects here after consent; fetches tokens, stores them as JSON in `User.google_tokens`, then redirects to `http://localhost:5173/dashboard?google=connected`.
 - **`User.google_tokens`** (`Text`, nullable) — stores the per-user OAuth token bundle as a JSON string (`token`, `refresh_token`, `token_uri`, `client_id`, `scopes`). This is a schema change: existing `aria.db` files lack the column and must be dropped or `seed.py` re-run.
-- **`OAUTHLIB_INSECURE_TRANSPORT=1`** — set in `main.py` at startup to allow HTTP during local dev. Must be removed or gated on an env var before any non-local deployment.
+- **`OAUTHLIB_INSECURE_TRANSPORT=1`** — set in `main.py` at startup to allow HTTP during local dev, but only when `not config.IS_PRODUCTION`, so it is automatically disabled in production.
 
 **What is wired (calendar sync):**
 - **`routers/calendar.py`** — mounted at `/calendar`. Two endpoints:
@@ -114,6 +120,7 @@ SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `eve
 - `src/App.tsx` — React Router with a `ProtectedRoute` that gates `/dashboard` and `/chat` on a `token` in `localStorage`; `/` is the auth page. The entire app is wrapped in `<ErrorBoundary><ToastProvider>` — both are mounted here so all pages can use `useToast()` and render errors are caught globally.
 - `src/api/axios.ts` — shared axios instance; a request interceptor attaches `Authorization: Bearer <token>` from `localStorage` automatically. A response interceptor handles 401s globally: clears the token and redirects to `/`, except on the `/auth/token` login endpoint (so bad-password errors still surface in the form). Use this instance for all API calls.
 - `src/types/index.ts` — `Task` / `Event` / `Course` interfaces mirroring the backend models.
+- `src/contexts/AuthContext.tsx` — an `AuthProvider` / `useAuth()` context exposing `{ isAuthenticated, token, login, logout, loading }` over `localStorage`. **Note:** this file exists but is not currently wired into `App.tsx`, which still does inline `localStorage` token checks. Prefer migrating auth reads through this context rather than adding more inline checks.
 - Pages: `authPage`, `dashboardPage`, `chatPage`; per-page CSS in `src/styles/`. Tailwind v4 is configured via `@tailwindcss/postcss`.
 
 ### Frontend components
@@ -133,4 +140,4 @@ SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `eve
 `tailwind.config.js` extends Tailwind with four custom animations: `animate-fade-in` (page wrapper), `animate-slide-up` (cards, with optional `animationDelay` for stagger), `animate-scale-in` (stat cards, modal), `animate-slide-down`. Task rows use `hover:scale-[1.01] transition-all duration-200`.
 
 ### Error handling — backend (`main.py`)
-Three exception handlers are registered: `RequestValidationError` → 400, `SQLAlchemyError` → 500, catch-all `Exception` → 500. **Known gap:** `HTTPException` is a subclass of `Exception`, so it must be handled before the catch-all or it will be swallowed as a 500. The `get_db` dependency should rollback on exception before closing the session. `OAUTHLIB_INSECURE_TRANSPORT=1` is currently set unconditionally — gate it on `ENV != production` before any non-local deployment.
+Four exception handlers are registered: `RequestValidationError` → 400, `SQLAlchemyError` → 500, catch-all `Exception` → 500, and an explicit `HTTPException` handler that preserves the original status code and detail (FastAPI dispatches to the most specific handler, so `HTTPException`s are not swallowed by the catch-all). The `get_db` dependency in `database.py` rolls back on exception before closing the session. `OAUTHLIB_INSECURE_TRANSPORT=1` is gated on `not config.IS_PRODUCTION`.
