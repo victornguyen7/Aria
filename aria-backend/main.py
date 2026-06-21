@@ -57,7 +57,9 @@ app.add_middleware(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    errors = jsonable_encoder(exc.errors(include_url=False))
+    errors = jsonable_encoder(exc.errors)
+    for error in errors:
+        error.pop("url", None)
     logger.error(f"Validation error: {errors}")
     return JSONResponse(status_code=400, content={"detail": errors})
 
