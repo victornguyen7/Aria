@@ -4,11 +4,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import get_db
-<<<<<<< HEAD
 from models.event import Event as EventModel
-=======
-from models.event import event as EventModel
->>>>>>> 9900b8602d6f74525df2113e3b633948eaea5f6e
 from models.auth import get_current_user
 from models.user import User
 
