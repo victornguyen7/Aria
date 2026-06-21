@@ -10,7 +10,7 @@ from models.user import User
 from services.context import build_user_context
 from services.prompt import build_system_prompt
 from config import config
-from typing import Generator, Literal
+from typing import Generator, Literal, cast
 import json
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -59,7 +59,7 @@ def chat_stream_endpoint(chat_message: ChatMessage, db: Session = Depends(get_db
     # Add current user message
     messages.append({"role": "user", "content": chat_message.message})
 
-    return StreamingResponse(stream_chat_response(messages), media_type="text/event-stream")
+    return StreamingResponse(stream_chat_response(cast(list[ChatCompletionMessageParam], messages)), media_type="text/event-stream")
 
 @router.post("/message")
 def chat_message_endpoint(chat_message: ChatMessage, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -82,7 +82,7 @@ def chat_message_endpoint(chat_message: ChatMessage, db: Session = Depends(get_d
 
     response = client.chat.completions.create(
         model=config.GROQ_MODEL,
-        messages=messages,
+        messages=cast(list[ChatCompletionMessageParam], messages),
         max_tokens=1000
     )
     

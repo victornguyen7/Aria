@@ -4,11 +4,12 @@ from database import get_db
 from sqlalchemy.orm import Session
 from routers.auth import get_current_user
 from models.user import User
-from google_auth_oauthlib.flow import Flow  # type: ignore
+from google_auth_oauthlib.flow import Flow 
+from google.oauth2.credentials import Credentials as OAuth2Credentials
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 from config import config
-from typing import Optional
+from typing import cast
 import json
 
 router = APIRouter(prefix="/auth/google", tags=["google"])
@@ -81,7 +82,7 @@ def callback(code: str, state: str, db: Session = Depends(get_db)):
             flow.code_verifier = code_verifier
 
         flow.fetch_token(code=code)
-        credentials = flow.credentials
+        credentials = cast(OAuth2Credentials, flow.credentials)
 
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
