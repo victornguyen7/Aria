@@ -384,6 +384,25 @@ export default function DashboardPage() {
                         <span className={priorityPill[task.priority]}>
                           {task.priority}
                         </span>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Are you sure you want to delete this task?")) return;
+                            try {
+                              await api.delete(`/tasks/${task.id}`);
+                              fetchTasks();
+                              fetchBriefing();
+                              successToast("Task deleted successfully");
+                            } catch {
+                              errorToast("Failed to delete task. Please try again.");
+                            }
+                          }}
+                          className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Delete
+                        </button>
                       </div>
                     </div>
                     );
