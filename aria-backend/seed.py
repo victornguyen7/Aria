@@ -4,7 +4,6 @@ from database import SessionLocal, Base, engine
 from models.user import User
 from models.task import Task, Priority, Status
 from models.event import Event
-from models.course import Course
 from models.auth import hash_password
 
 # Create all tables first
@@ -16,7 +15,6 @@ try:
     # Delete in FK-safe order (children first)
     db.query(Task).delete()
     db.query(Event).delete()
-    db.query(Course).delete()
     db.query(User).delete()
     db.commit()
 
@@ -29,15 +27,6 @@ try:
     db.add(test_user)
     db.commit()
     db.refresh(test_user)
-
-    # Seed courses (model uses name_code, not code)
-    courses = [
-        Course(user_id=test_user.id, name="Data Structures", name_code="CS201", instructor="Dr. Smith"),
-        Course(user_id=test_user.id, name="Calculus II", name_code="MATH202", instructor="Dr. Johnson"),
-        Course(user_id=test_user.id, name="Intro to AI", name_code="CS301", instructor="Dr. Lee"),
-    ]
-    db.add_all(courses)
-    db.commit()
 
     now = datetime.utcnow()
     tasks = [

@@ -10,11 +10,9 @@ from database import Base, engine
 import models.user
 import models.task
 import models.event
-import models.course
 from routers.auth import router as auth_router
 from routers.tasks import router as tasks_router
 from routers.events import router as events_router
-from routers.courses import router as courses_router
 from routers.chat import router as chat_router
 from routers.briefing import router as briefing_router
 from routers.google import router as google_router
@@ -83,7 +81,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(events_router)
-app.include_router(courses_router)
 app.include_router(chat_router)
 app.include_router(briefing_router)
 app.include_router(google_router)

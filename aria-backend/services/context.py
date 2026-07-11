@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from models.user import User
 from models.task import Task, Status, Priority
 from models.event import Event
-from models.course import Course
 from datetime import datetime, timedelta
 
 def score_priority(task_obj: Task, now: datetime) -> float:
@@ -52,8 +51,6 @@ def build_user_context(user: User, db: Session) -> str:
     all_events = db.query(Event).filter(Event.user_id == user.id).all()
     google_events = [e for e in all_events if e.source.startswith("google:") and e.start_time >= now and e.start_time <= week_time]
 
-    courses = db.query(Course).filter(Course.user_id == user.id).all()
-
     overdue = [t for t in tasks if t.due_date and t.due_date < now and t.status != Status.done.value]
     upcoming = [t for t in tasks if t.due_date and t.due_date >= now and t.status != Status.done.value]
     done = [t for t in tasks if t.status == Status.done.value]
@@ -82,8 +79,6 @@ GOOGLE CALENDAR EVENTS (next 7 days, {len(sorted_google)} total)
     STUDENT PROFILE
     User ID: {user.id}
     Email: {user.email}
-    Courses: ({len(courses)} total)
-    {chr(10).join(f"- {c.name} (ID: {c.id or 'no code'}) - {c.instructor or 'no instructor'}" for c in courses) if courses else "None."}
 
     Overdue: ({len(overdue)} total)
     {chr(10).join(f"- {t.title} (Due: {t.due_date.strftime('%Y-%m-%d %H:%M')}) - Priority: {t.priority} - Status: {t.status}" for t in overdue) if overdue else "None."}

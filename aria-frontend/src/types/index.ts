@@ -26,14 +26,3 @@ export interface Event {
     updated_at: Date;
     source: string;
 }
-
-export interface Course {
-    id: string;
-    user_id: string;
-    name: string;
-    name_code: string;
-    instructor: string;
-    description: string;
-    created_at: Date;
-    updated_at: Date;
-}
