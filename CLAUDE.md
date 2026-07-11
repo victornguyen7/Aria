@@ -56,7 +56,7 @@ Frontend reads `VITE_API_URL` (the backend base URL) via `import.meta.env`.
 ## Architecture
 
 ### Backend request flow
-`main.py` configures CORS from an origins list (`http://localhost:5173`, `http://localhost:4173`, plus `FRONTEND_ORIGIN` when `config.IS_PRODUCTION`) and mounts nine routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`, `canvas`. A `GET /health` endpoint returns `{"status": "ok"}`.
+`main.py` configures CORS from an origins list (`http://localhost:5173`, `http://localhost:4173`, plus `FRONTEND_ORIGIN` when `config.IS_PRODUCTION`) and mounts eight routers, each a `prefix`-scoped `APIRouter`: `auth`, `tasks`, `events`, `courses`, `chat`, `briefing`, `google`, `calendar`. A `GET /health` endpoint returns `{"status": "ok"}`.
 
 - **Auth** (`routers/auth.py`, `models/auth.py`): JWT bearer tokens. Login uses FastAPI's `OAuth2PasswordRequestForm` where the `username` field is treated as the (lowercased) email. Passwords hashed with Argon2 (bcrypt fallback) via passlib. `get_current_user` is the dependency every protected route depends on — it decodes the JWT `sub` (email) and loads the `User`.
 - **Data ownership**: tasks/events/courses are always filtered by `user_id == current_user.id`. Follow this pattern for any new per-user query or mutation.
@@ -101,20 +101,8 @@ The app is being wired to pull a student's Google Calendar into the same `events
 
 **`source` provenance column**: `event` carries a `source` string, default `"manual"`. Google-synced rows use `source=f"google:{google_event_id}"` (no space). Always use `source.startswith("google:")` to detect Google events — never equality-check the full string. Always stamp `source` on writes and filter by it when reconciling synced vs. manual data.
 
-### Canvas integration (mock)
-`routers/canvas.py` — mounted at `/canvas`. Provides a mock Canvas LMS integration using hardcoded course and assignment data. All routes require JWT auth.
-
-- `GET /canvas/courses` — returns `MOCK_COURSES` (3 courses: CS201, MATH202, CS301).
-- `GET /canvas/assignments` — returns assignments with due dates computed relative to the current request time (not import time).
-- `POST /canvas/sync/courses` — upserts mock courses into the `courses` table, deduplicating by `course.canvas_id`.
-- `POST /canvas/sync/assignments` — upserts mock assignments into the `tasks` table, deduplicating by `task.title`. Priority is derived from due-date proximity (overdue or ≤2 days → high, ≤5 days → medium, else low). Status defaults to `todo`.
-
-**Known gaps in the `task` model:** `task` has no `source` or `canvas_id` columns yet. Until those are added, deduplication is title-only and re-syncing may produce duplicates if titles change. Adding those columns requires dropping `aria.db` or re-running `seed.py`.
-
-**Sync order matters:** run `POST /canvas/sync/courses` before `POST /canvas/sync/assignments` so the course_code → course_id map is populated.
-
 ### Models
-SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `f"google:{google_id}"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it. `task` also has optional `grade_max` and `grade_earned` float columns for Canvas grade data; the frontend `Task` type in `src/types/index.ts` includes these as `number | null`.
+SQLAlchemy models live in `models/` with **lowercase class names** (`task`, `event`, `course`) except `User`. `task` has `priority` and `status` Python enums (`low/medium/high`, `todo/in_progress/done`). Note that context/briefing code sometimes compares `task.status` against `status.x.value` (the string) and sometimes against the enum — be consistent with the surrounding code when editing. `event` has a `source` column (`"manual"` / `f"google:{google_id}"`) for the Google Calendar integration above; the frontend `Event` type in `src/types/index.ts` mirrors it. `task` also has optional `grade_max` and `grade_earned` float columns for tracking grades; the frontend `Task` type in `src/types/index.ts` includes these as `number | null`.
 
 ### Frontend
 - `src/App.tsx` — React Router with a `ProtectedRoute` that gates `/dashboard` and `/chat` on a `token` in `localStorage`; `/` is the auth page. The entire app is wrapped in `<ErrorBoundary><ToastProvider>` — both are mounted here so all pages can use `useToast()` and render errors are caught globally.

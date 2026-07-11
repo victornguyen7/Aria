@@ -24,7 +24,7 @@ class Task(Base):
     grade_max: Mapped[float] = mapped_column(Float, nullable=True)
     grade_earned: Mapped[float] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
     due_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     priority: Mapped[Priority] = mapped_column(Enum(Priority), default=Priority.medium)
     status: Mapped[Status] = mapped_column(Enum(Status), default=Status.todo)

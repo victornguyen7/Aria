@@ -34,7 +34,6 @@ export interface Course {
     name_code: string;
     instructor: string;
     description: string;
-    canvas_id: string;
     created_at: Date;
     updated_at: Date;
 }

@@ -14,14 +14,12 @@ class CourseCreate(BaseModel):
     name_code: str
     description: Optional[str] = None
     instructor: Optional[str] = None
-    canvas_id: Optional[str] = None
 
 class CourseUpdate(BaseModel):
     name: Optional[str] = None
     name_code: Optional[str] = None
     description: Optional[str] = None
     instructor: Optional[str] = None
-    canvas_id: Optional[str] = None
 
 @router.get("/")
 def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
