@@ -48,7 +48,7 @@ def sync_calendar(db: Session = Depends(get_db), current_user: User = Depends(ge
 
         now = datetime.now(timezone.utc)
         time_min = now.isoformat()
-        time_max = (now + timedelta(days=7)).isoformat()
+        time_max = (now + timedelta(days=14)).isoformat()
 
         result = service.events().list(
             calendarId="primary",

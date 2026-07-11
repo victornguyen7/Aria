@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import type { Task } from "../types";
+import type { Event } from "../types";
 import AddTaskModal from "../components/addTaskModal";
+import AddEventModal from "../components/addEventModel";
 import TodayTimeline from "../components/todayTimeline";
 import ReactMarkdown from "react-markdown";
 import {
@@ -24,6 +26,7 @@ interface Conflict {
 interface Briefing {
   summary: string;
   focus_task: Task | null;
+  focus_event: Event | null;
   conflicts: Conflict[];
   overdue_count: number;
   upcoming_count: number;
@@ -40,10 +43,12 @@ const priorityPill = {
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loadingBriefing, setLoadingBriefing] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [calendarSyncing, setCalendarSyncing] = useState(false);
   const { errorToast, successToast } = useToast();
@@ -59,6 +64,7 @@ export default function DashboardPage() {
     }
 
     fetchTasks();
+    fetchEvents();
     fetchBriefing();
     checkCalendarStatus();
   }, []);
@@ -75,6 +81,18 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const res = await api.get("/events/");
+      setEvents(res.data);
+    } catch {
+      localStorage.removeItem("token");
+      window.location.href = "/";
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+  
   const fetchBriefing = async () => {
     try {
       const res = await api.get("/briefing/");
@@ -163,6 +181,9 @@ export default function DashboardPage() {
             )}
             <button onClick={() => setShowModal(true)} className="btn-primary">
               + New task
+            </button>
+            <button onClick={() => setShowEventModal(true)} className="btn-outline">
+              + New event
             </button>
             <button
               onClick={() => { localStorage.removeItem("token"); window.location.href = "/"; }}
@@ -261,8 +282,10 @@ export default function DashboardPage() {
 
             {/* Today's Timeline */}
             {briefing && (
-              <TodayTimeline 
-                events={briefing.today_events || []} 
+              <TodayTimeline
+                events={events.filter(
+                  (e) => new Date(e.start_time).toDateString() === new Date().toDateString()
+                )}
                 tasks={tasks.filter((t) => t.due_date && new Date(t.due_date).toDateString() === new Date().toDateString())}
               />
             )}
@@ -403,7 +426,22 @@ export default function DashboardPage() {
           onClose={() => setShowModal(false)}
           onCreated={() => {
             fetchTasks();
+            fetchBriefing();
             setShowModal(false);
+            successToast("Task created successfully");
+          }}
+        />
+      )}
+
+      {showEventModal && (
+        <AddEventModal
+          isOpen={showEventModal}
+          onClose={() => setShowEventModal(false)}
+          onCreated={() => {
+            fetchEvents();
+            fetchBriefing();
+            setShowEventModal(false);
+            successToast("Event created successfully");
           }}
         />
       )}

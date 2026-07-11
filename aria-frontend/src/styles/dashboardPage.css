@@ -192,6 +192,22 @@ body {
   border-color: rgba(52, 168, 83, 0.15);
 }
 
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-outline:hover {
+  background: var(--accent-soft);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
@@ -233,6 +249,106 @@ button:disabled {
   backdrop-filter: blur(4px);
   z-index: 50;
   animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-content h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.modal-content input::placeholder,
+.modal-content textarea::placeholder {
+  color: var(--text-dim);
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus,
+.modal-content select:focus {
+  border-color: var(--accent);
+}
+
+.modal-content textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.modal-content .error {
+  color: #f87171;
+  font-size: 0.8rem;
+}
+
+.modal-content button[type="submit"] {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: none;
+  transition: background 0.2s ease;
+}
+
+.modal-content button[type="submit"]:hover:not(:disabled) {
+  background: #2f73e6;
+}
+
+.modal-content .close-button,
+.modal-content > button:last-child:not([type="submit"]) {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.4rem 0;
+  border: none;
+}
+
+.modal-content .close-button:hover,
+.modal-content > button:last-child:not([type="submit"]):hover {
+  color: var(--text);
 }
 
 /* ============= Scrollbar ============= */
