@@ -12,6 +12,7 @@ export default function AddTaskModal({ isOpen, onClose, onCreated }: addTaskModa
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("medium");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +29,9 @@ export default function AddTaskModal({ isOpen, onClose, onCreated }: addTaskModa
       const response = await api.post("/tasks", {
         title,
         description: description || undefined,
-        due_date: dueDate || undefined,
+        due_date: dueDate
+          ? new Date(`${dueDate}T${dueTime || "23:59"}:00`).toISOString()
+          : undefined,
         priority,
         status: "todo"
       });
@@ -38,6 +41,7 @@ export default function AddTaskModal({ isOpen, onClose, onCreated }: addTaskModa
       setTitle("");
       setDescription("");
       setDueDate("");
+      setDueTime("");
       setPriority("medium");
     } catch (error) {
       setError("Error creating task. Please try again.");
@@ -69,6 +73,11 @@ export default function AddTaskModal({ isOpen, onClose, onCreated }: addTaskModa
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+          />
+          <input
+            type="time"
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
           />
           <select value={priority} onChange={(e) => setPriority(e.target.value)}>
             <option value="low">Low</option>
