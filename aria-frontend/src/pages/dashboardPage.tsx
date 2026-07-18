@@ -153,20 +153,23 @@ export default function DashboardPage() {
   const done = tasks.filter((t) => t.status === "done");
 
   return (
-    <div className="min-h-screen text-white" style={{ background: "var(--bg)" }}>
-      <div className="max-w-5xl mx-auto px-4 py-10 dashboard-container animate-fade-in">
+    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)" }}>
+      <div
+        className="dashboard-container animate-fade-in"
+        style={{ maxWidth: "64rem", margin: "0 auto", paddingTop: "2.5rem", paddingBottom: "2.5rem" }}
+      >
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between" style={{ marginBottom: "2.5rem" }}>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Good morning ✦</h1>
-            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--text)" }}>Good morning ✦</h1>
+            <p style={{ fontSize: "0.875rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long", month: "long", day: "numeric",
               })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center" style={{ gap: "0.75rem" }}>
             <button onClick={() => (window.location.href = "/chat")} className="btn-ghost">
               Chat with ARIA
             </button>
@@ -187,38 +190,37 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => { localStorage.removeItem("token"); window.location.href = "/"; }}
-              className="text-sm transition"
-              style={{ color: "var(--text-dim)" }}
+              style={{ fontSize: "0.875rem", color: "var(--text-dim)", transition: "color 0.18s ease" }}
             >
               Log out
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-3" style={{ gap: "1.5rem", marginBottom: "3rem" }}>
           {/* Left Column - Briefing & Focus */}
-          <div className="col-span-2 space-y-6">
+          <div className="col-span-2 flex flex-col" style={{ gap: "1.5rem" }}>
 
             {/* AI Briefing card */}
             {loadingBriefing ? (
               <BriefingSkeleton />
             ) : briefing ? (
               <div className="dashboard-block animate-slide-up">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center" style={{ gap: "0.5rem", marginBottom: "0.75rem" }}>
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                    style={{ background: "var(--accent)" }}
+                    className="flex items-center justify-center"
+                    style={{ width: 24, height: 24, borderRadius: "9999px", background: "var(--accent)", color: "var(--text)", fontSize: "0.75rem", fontWeight: 600 }}
                   >
                     A
                   </div>
-                  <p className="text-sm font-medium" style={{ color: "var(--accent)" }}>ARIA's daily briefing</p>
+                  <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--info)" }}>ARIA's daily briefing</p>
                 </div>
-                <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none" style={{ color: "var(--text-muted)" }}>
+                <div className="prose prose-invert prose-sm" style={{ fontSize: "0.875rem", lineHeight: 1.6, color: "var(--text-muted)", maxWidth: "none" }}>
                   <ReactMarkdown>{briefing.summary}</ReactMarkdown>
                 </div>
               </div>
             ) : (
-              <p className="text-sm" style={{ color: "var(--text-dim)" }}>Could not load briefing.</p>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-dim)" }}>Could not load briefing.</p>
             )}
 
             {/* Focus task */}
@@ -226,19 +228,19 @@ export default function DashboardPage() {
               <FocusTaskSkeleton />
             ) : briefing?.focus_task ? (
               <div className="dashboard-block animate-slide-up" style={{ animationDelay: "0.1s", animationFillMode: "both" }}>
-                <p className="text-xs font-medium uppercase tracking-widest mb-2" style={{ color: "var(--accent)" }}>
+                <p style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.5rem", color: "var(--info)" }}>
                   Today's focus
                 </p>
-                <p className="text-white font-medium">{briefing.focus_task.title}</p>
+                <p style={{ fontWeight: 500, color: "var(--text)" }}>{briefing.focus_task.title}</p>
                 {briefing.focus_task.description && (
-                  <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{briefing.focus_task.description}</p>
+                  <p style={{ fontSize: "0.875rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>{briefing.focus_task.description}</p>
                 )}
-                <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center" style={{ gap: "0.75rem", marginTop: "0.75rem" }}>
                   <span className={priorityPill[briefing.focus_task.priority]}>
                     {briefing.focus_task.priority}
                   </span>
                   {briefing.focus_task.due_date && (
-                    <span className="text-xs" style={{ color: "var(--text-dim)" }}>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
                       Due {formatDate(briefing.focus_task.due_date)}
                     </span>
                   )}
@@ -249,30 +251,35 @@ export default function DashboardPage() {
             {/* Conflicts */}
             {briefing && briefing.conflicts && briefing.conflicts.length > 0 && (
               <div className="dashboard-block">
-                <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
+                <p style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.75rem", color: "var(--text-muted)" }}>
                   ⚠ Conflicts
                 </p>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col" style={{ gap: "0.5rem" }}>
                   {briefing.conflicts.map((c, i) => {
-                    const severityStyle: Record<string, string> = {
-                      critical: "border-red-500/40 bg-red-500/10",
-                      high:     "border-orange-500/40 bg-orange-500/10",
-                      medium:   "border-yellow-500/40 bg-yellow-500/10",
-                      low:      "border-gray-500/40 bg-gray-500/10",
+                    const severityColor: Record<string, string> = {
+                      critical: "var(--error)",
+                      high: "var(--warning)",
+                      medium: "var(--text-muted)",
+                      low: "var(--text-dim)",
                     };
-                    const severityDot: Record<string, string> = {
-                      critical: "bg-red-500",
-                      high:     "bg-orange-400",
-                      medium:   "bg-yellow-400",
-                      low:      "bg-gray-400",
-                    };
+                    const dot = severityColor[c.severity] ?? "var(--text-dim)";
                     return (
                       <div
                         key={i}
-                        className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${severityStyle[c.severity] ?? ""}`}
+                        className="flex items-start"
+                        style={{
+                          gap: "0.75rem",
+                          padding: "0.625rem 0.75rem",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
+                        }}
                       >
-                        <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${severityDot[c.severity] ?? "bg-gray-400"}`} />
-                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>{c.message}</p>
+                        <span
+                          className="flex-shrink-0"
+                          style={{ width: 8, height: 8, marginTop: 6, borderRadius: "9999px", background: dot }}
+                        />
+                        <p style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>{c.message}</p>
                       </div>
                     );
                   })}
@@ -292,70 +299,69 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Stats */}
-          <div className="space-y-4">
+          <div className="flex flex-col" style={{ gap: "1rem" }}>
             {[
-              { label: "Overdue", count: overdue.length, color: "text-red-400" },
-              { label: "Upcoming", count: upcoming.length, color: "text-blue-400" },
-              { label: "Done", count: done.length, color: "text-emerald-400" },
+              { label: "Overdue", count: overdue.length, color: "var(--error)" },
+              { label: "Upcoming", count: upcoming.length, color: "var(--info)" },
+              { label: "Done", count: done.length, color: "var(--success)" },
             ].map((s, i) => (
               <div
                 key={s.label}
                 className="stat-card animate-scale-in"
                 style={{ animationDelay: `${i * 0.05}s`, animationFillMode: "both" }}
               >
-                <p className={`text-3xl font-semibold ${s.color}`}>{s.count}</p>
-                <p className="text-sm mt-1" style={{ color: "var(--text-dim)" }}>{s.label}</p>
+                <p style={{ color: s.color, fontSize: "1.875rem", fontWeight: 600, letterSpacing: "-0.02em" }}>{s.count}</p>
+                <p style={{ fontSize: "0.875rem", marginTop: "0.25rem", color: "var(--text-dim)" }}>{s.label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Task sections */}
-        <div className="mt-16 space-y-8">
+        <div className="flex flex-col" style={{ marginTop: "4rem", gap: "2rem" }}>
           {loadingTasks ? (
             <div>
-              <SkeletonLine className="h-3 w-20 mb-3" />
+              <SkeletonLine className="mb-3" style={{ height: "0.75rem", width: "5rem" }} />
               <TaskListSkeleton />
             </div>
           ) : (
           <>
           {[
-            { label: "Overdue", items: overdue, accent: "text-red-400" },
-            { label: "Upcoming", items: upcoming, accent: "text-white" },
-            { label: "Done", items: done, accent: "text-slate-500" },
+            { label: "Overdue", items: overdue, accent: "var(--error)" },
+            { label: "Upcoming", items: upcoming, accent: "var(--text)" },
+            { label: "Done", items: done, accent: "var(--text-dim)" },
           ].map(({ label, items, accent }) =>
             items.length > 0 ? (
               <div key={label}>
-                <p className={`text-xs font-medium uppercase tracking-widest mb-3 ${accent}`}>
+                <p style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.75rem", color: accent }}>
                   {label}
                 </p>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col" style={{ gap: "0.5rem" }}>
                   {items.map((task) => {
                     const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
                     return (
                     <div
                       key={task.id}
-                      className={`task-item flex items-start gap-3 transition-all duration-200 hover:scale-[1.01] cursor-default ${isOverdue ? "overdue" : ""}`}
+                      className={`task-item flex items-start gap-3 cursor-default ${isOverdue ? "overdue" : ""}`}
                     >
                       <button
                         onClick={() => toggleStatus(task)}
-                        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
-                          task.status === "done"
-                            ? "bg-green-500 border-green-500"
-                            : isOverdue
-                            ? "checkbox-overdue bg-red-500/20 border-red-500"
-                            : "border-gray-600 hover:border-green-500"
+                        className={`task-checkbox mt-0.5 ${
+                          task.status === "done" ? "done" : isOverdue ? "is-overdue" : ""
                         }`}
                       >
                         {task.status === "done" && (
-                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-gray-500" : "text-white"}`}>
+                          <p
+                            className={`text-sm font-medium ${task.status === "done" ? "line-through" : ""}`}
+                            style={{ color: task.status === "done" ? "var(--text-dim)" : "var(--text)" }}
+                          >
                             {task.title}
                           </p>
                           {isOverdue && (
@@ -380,8 +386,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {task.due_date && (
-                          <span className={`text-xs ${isOverdue ? "text-red-400 font-semibold" : ""}`}
-                            style={!isOverdue ? { color: "var(--text-dim)" } : undefined}>
+                          <span
+                            className="text-xs"
+                            style={{ color: isOverdue ? "var(--error)" : "var(--text-dim)", fontWeight: isOverdue ? 600 : 400 }}
+                          >
                             {formatDate(task.due_date)}
                           </span>
                         )}
@@ -400,9 +408,9 @@ export default function DashboardPage() {
                               errorToast("Failed to delete task. Please try again.");
                             }
                           }}
-                          className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition"
+                          className="task-delete-btn"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                           </svg>
                           Delete

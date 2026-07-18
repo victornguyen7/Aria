@@ -1,34 +1,33 @@
-/* Auth Page Styles */
+/* Auth Page Styles — tokens come from src/styles/tokens.css */
 
 .auth-container {
   min-height: 100vh;
-  background-color: rgb(3, 7, 30);
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  border-left: 8px solid rgb(30, 41, 59);
-  border-right: 8px solid rgb(30, 41, 59);
 }
 
 .auth-box {
   width: 100%;
-  max-width: 320px;
-  background-color: rgb(30, 27, 75);
-  border: 1px solid rgb(55, 48, 163);
-  border-radius: 1rem;
-  padding: 2rem;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
 }
 
 .auth-header h1 {
-  color: white;
-  font-size: 1.5rem;
+  color: var(--text);
+  font-size: 1.375rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
   margin-bottom: 0.25rem;
 }
 
 .auth-header p {
-  color: rgb(191, 219, 254);
+  color: var(--text-muted);
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
 }
@@ -40,46 +39,46 @@
 }
 
 .auth-inputs input {
-  background-color: rgb(29, 78, 216);
-  color: white;
-  border: 1px solid rgb(37, 99, 235);
-  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
-  transition: border-color 0.2s;
+  transition: border-color 0.18s ease;
 }
 
 .auth-inputs input::placeholder {
-  color: rgb(147, 197, 253);
+  color: var(--text-dim);
 }
 
 .auth-inputs input:focus {
   outline: none;
-  border-color: rgb(96, 165, 250);
+  border-color: var(--accent-hover);
 }
 
 .auth-error {
   font-size: 0.875rem;
   margin-top: 0.75rem;
-  color: rgb(252, 165, 165);
+  color: var(--error);
 }
 
 .auth-button {
   margin-top: 1rem;
   width: 100%;
-  background-color: rgb(37, 99, 235);
-  color: white;
+  background: var(--accent);
+  color: var(--text);
   font-weight: 500;
   padding: 0.625rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background 0.18s ease;
 }
 
 .auth-button:hover:not(:disabled) {
-  background-color: rgb(59, 130, 246);
+  background: var(--accent-hover);
 }
 
 .auth-button:disabled {
@@ -90,17 +89,17 @@
 .auth-footer {
   text-align: center;
   font-size: 0.875rem;
-  color: rgb(147, 197, 253);
+  color: var(--text-muted);
   margin-top: 1rem;
 }
 
 .auth-footer button {
-  color: rgb(191, 219, 254);
+  color: var(--text);
   background: none;
   border: none;
   cursor: pointer;
   text-decoration: none;
-  transition: text-decoration 0.2s;
+  transition: color 0.18s ease;
 }
 
 .auth-footer button:hover {

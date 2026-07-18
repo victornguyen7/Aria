@@ -1,7 +1,8 @@
 /* stylelint-disable at-rule-no-unknown */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Inter is loaded via <link> in index.html, not @import here — CSS @import of a
+   remote URL trips PostCSS's "no `from` option" warning during the Tailwind build. */
+@import './styles/tokens.css';
+@import "tailwindcss";
 
 * {
   margin: 0;
@@ -15,7 +16,10 @@ html, body, #root {
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+  background: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

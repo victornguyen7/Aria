@@ -1,32 +1,46 @@
+import type { CSSProperties } from "react";
+
 interface Props {
   className?: string;
+  style?: CSSProperties;
 }
 
-export function SkeletonLine({ className = "" }: Props) {
-  return <div className={`bg-gray-800 rounded animate-pulse ${className}`} />;
+const card: CSSProperties = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius-lg)",
+};
+
+export function SkeletonLine({ className = "", style }: Props) {
+  return (
+    <div
+      className={`animate-pulse ${className}`}
+      style={{ background: "var(--surface-2)", borderRadius: "var(--radius-sm)", height: 12, ...style }}
+    />
+  );
 }
 
 export function SkeletonCard({ className = "" }: Props) {
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-xl p-4 ${className}`}>
-      <SkeletonLine className="h-4 w-3/4 mb-2" />
-      <SkeletonLine className="h-3 w-1/2" />
+    <div className={className} style={{ ...card, padding: 16 }}>
+      <SkeletonLine style={{ width: "75%", height: 16, marginBottom: 8 }} />
+      <SkeletonLine style={{ width: "50%", height: 12 }} />
     </div>
   );
 }
 
 export function BriefingSkeleton() {
   return (
-    <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-6 h-6 rounded-full bg-gray-800 animate-pulse" />
-        <SkeletonLine className="h-3 w-32" />
+    <div style={{ ...card, padding: 24 }}>
+      <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
+        <div className="animate-pulse" style={{ width: 24, height: 24, borderRadius: "var(--radius-sm)", background: "var(--surface-2)" }} />
+        <SkeletonLine style={{ width: 128, height: 12 }} />
       </div>
-      <div className="flex flex-col gap-2">
-        <SkeletonLine className="h-4 w-full" />
-        <SkeletonLine className="h-4 w-5/6" />
-        <SkeletonLine className="h-4 w-4/6" />
-        <SkeletonLine className="h-4 w-3/4 mt-1" />
+      <div className="flex flex-col" style={{ gap: 8 }}>
+        <SkeletonLine style={{ width: "100%", height: 16 }} />
+        <SkeletonLine style={{ width: "85%", height: 16 }} />
+        <SkeletonLine style={{ width: "65%", height: 16 }} />
+        <SkeletonLine style={{ width: "75%", height: 16, marginTop: 4 }} />
       </div>
     </div>
   );
@@ -34,13 +48,13 @@ export function BriefingSkeleton() {
 
 export function FocusTaskSkeleton() {
   return (
-    <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-5">
-      <SkeletonLine className="h-3 w-24 mb-3" />
-      <SkeletonLine className="h-5 w-2/3 mb-2" />
-      <SkeletonLine className="h-3 w-1/2 mb-3" />
-      <div className="flex gap-2">
-        <SkeletonLine className="h-5 w-16 rounded-full" />
-        <SkeletonLine className="h-5 w-20" />
+    <div style={{ ...card, padding: 20 }}>
+      <SkeletonLine style={{ width: 96, height: 12, marginBottom: 12 }} />
+      <SkeletonLine style={{ width: "65%", height: 20, marginBottom: 8 }} />
+      <SkeletonLine style={{ width: "50%", height: 12, marginBottom: 12 }} />
+      <div className="flex" style={{ gap: 8 }}>
+        <SkeletonLine style={{ width: 64, height: 20 }} />
+        <SkeletonLine style={{ width: 80, height: 20 }} />
       </div>
     </div>
   );
@@ -48,18 +62,19 @@ export function FocusTaskSkeleton() {
 
 export function TaskListSkeleton() {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col" style={{ gap: 8 }}>
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-3"
+          className="flex items-center"
+          style={{ ...card, borderRadius: "var(--radius-md)", padding: "12px 16px", gap: 12 }}
         >
-          <div className="w-5 h-5 rounded-full bg-gray-800 animate-pulse flex-shrink-0" />
+          <div className="animate-pulse flex-shrink-0" style={{ width: 20, height: 20, borderRadius: "9999px", background: "var(--surface-2)" }} />
           <div className="flex-1">
-            <SkeletonLine className="h-4 w-3/4 mb-1" />
-            <SkeletonLine className="h-3 w-1/2" />
+            <SkeletonLine style={{ width: "75%", height: 16, marginBottom: 4 }} />
+            <SkeletonLine style={{ width: "50%", height: 12 }} />
           </div>
-          <SkeletonLine className="h-5 w-16 rounded-full" />
+          <SkeletonLine style={{ width: 64, height: 20 }} />
         </div>
       ))}
     </div>

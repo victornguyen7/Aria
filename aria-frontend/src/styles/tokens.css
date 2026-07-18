@@ -1,0 +1,72 @@
+/* Aria design tokens — shared across all pages/components.
+   Mirrors the Figma design system: navy accent used sparingly,
+   near-black surfaces, hairline low-opacity borders, no pill shapes. */
+
+:root {
+  /* Surfaces */
+  --bg: #0d0d0f;             /* page canvas */
+  --surface: #121214;        /* cards, modals, inputs, sidebars */
+  --surface-2: #18181b;      /* nested / overlay surface */
+
+  /* Borders — hairline, low-opacity */
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* Accent — navy, used sparingly for actions/active states */
+  --accent: #101a34;
+  --accent-hover: #1b2c52;
+  --accent-active: #0a1128;
+  --accent-soft: rgba(91, 127, 209, 0.14);
+
+  /* Text */
+  --text: #e8e8ea;
+  --text-muted: #9a9aa2;
+  --text-dim: #6b6b72;
+
+  /* Status */
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --warning: #f5a524;
+  --warning-soft: rgba(245, 165, 36, 0.12);
+  --error: #f87171;
+  --error-soft: rgba(248, 113, 113, 0.12);
+  --info: #5b7fd1;
+  --info-soft: rgba(91, 127, 209, 0.12);
+
+  /* Radius scale — nothing pill-shaped */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Spacing (8px grid) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+}
+
+/* Shared entrance animations — fast (150-200ms), no bounce/spring easing.
+   Defined as plain CSS rather than via tailwind.config.js `theme.extend`,
+   since Tailwind v4's @config directive triggers a PostCSS "from" warning. */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in { animation: fadeIn 0.18s ease-out; }
+.animate-slide-up { animation: slideUp 0.18s ease-out; }
+.animate-slide-down { animation: slideDown 0.15s ease-out; }
+.animate-scale-in { animation: scaleIn 0.15s ease-out; }
