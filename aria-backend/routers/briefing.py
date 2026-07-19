@@ -10,6 +10,7 @@ from services.context import build_user_context, get_priority_tasks
 from services.conflict import detect_conflict
 from config import config
 import logging
+import random
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,29 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/briefing", tags=["briefing"])
 
 client = Groq(api_key=config.GROQ_API_KEY)
+
+WORKAHOLIC_QUOTES = [
+    ('"Work like there is someone working 24 hours a day to take it away from you."', "Mark Cuban"),
+    ('"I\'m not the smartest fellow in the world, but I sure can pick smart colleagues." Work hard, though — luck favors the busy.', "Franklin D. Roosevelt"),
+    ('"If you really look closely, most overnight successes took a long time."', "Steve Jobs"),
+    ('"There is no substitute for hard work."', "Thomas Edison"),
+    ('"The only way to do great work is to love what you do."', "Steve Jobs"),
+    ('"I feel that luck is prepared opportunity meeting preparation."', "Oprah Winfrey"),
+    ('"Someone\'s sitting in the shade today because someone planted a tree a long time ago."', "Warren Buffett"),
+    ('"I\'m always thinking about creating problems for myself, and that gives me the drive to solve them."', "Elon Musk"),
+    ('"You miss 100% of the shots you don\'t take."', "Wayne Gretzky"),
+    ('"The separation of talent and skill is one of the greatest misunderstood concepts. Skill is the unyielding zeal to practice."', "Will Smith"),
+    ('"The price of success is hard work, dedication to the job at hand, and the determination that whether we win or lose, we have applied the best of ourselves to the task at hand."', "Vince Lombardi"),
+    ('"A dream doesn\'t become reality through magic; it takes sweat, determination and hard work."', "Colin Powell"),
+    ('"The only place where success comes before work is in the dictionary."', "Vidal Sassoon"),
+    ('"The secret of getting ahead is getting started."', "Mark Twain"),
+    ('"Success is no accident. It is hard work, perseverance, learning, studying, sacrifice, and most of all, love of what you are doing."', "Pelé"),
+    ('"Far and away the best prize that life offers is the chance to work hard at work worth doing."', "Theodore Roosevelt"),
+    ('"Work Hard In Silence, Let Success Make The Noise."', "Frank Ocean"),
+    ('"Nothing ever comes to one, that is worth having, except as a result of hard work."', "Booker T. Washington"),
+    ('"I never dreamt of success. I worked for it."', "Estée Lauder"),
+    ('"Success isn\'t always about greatness. It\'s about consistency. Consistent hard work leads to success. Greatness will come."', "Dwayne Johnson"),
+]
 
 @router.get("/")
 def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -38,23 +62,32 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
     today = [e for e in events if e.start_time.date() == now.date()]
     today_text = "\n".join([f"- {e.title} (At: {e.start_time.strftime('%I:%M %p')})" for e in today]) or "No events today."
 
+    conflicts = detect_conflict(current_user.id, db)
+    top_conflicts = conflicts[:3]
+    conflicts_text = "\n".join(
+        f"- [{c['severity'].upper()}] {c['message']}" for c in top_conflicts
+    ) or "No conflicts detected."
+
+    quote_text, quote_author = random.choice(WORKAHOLIC_QUOTES)
+
     prompt = f"""You are ARIA (Academic & Routine Intelligence Assistant). You produce one structured daily briefing for a student using only the data provided. Never invent tasks, events, deadlines, or details not present in the data.
 
 Respond in exactly four labeled sections:
 
-GREETING — One sentence. Acknowledge the day and the student's current workload in plain, warm language.
+SCHEDULE — List today's events and tasks due today with their times, if applicable, one per line. If nothing is scheduled, say so.
 
-FOCUS — Identify the single highest-priority task the student must act on today. Base this on overdue status, due-date proximity, and priority score. State the task name and why it's the focus. If nothing is urgent, say so.
+TOP PRIORITIES — List up to five tasks or events from the data that need the most attention today, ordered by importance. For each, give a short reason (overdue, due soon, high priority, etc.).
 
-HEADS UP — Flag up to three risks or conflicts: overdue tasks, events clashing with deadlines, or high-priority work due within 48 hours. Include any Google Calendar events from the provided data if they affect the student's day. If nothing needs flagging, write "Nothing critical today."
+CONFLICTS — List the conflicts provided below (up to three), stating what overlaps or clashes. If none are provided, write "No conflicts today."
 
-MOTIVATION — One sentence. Practical and specific to their situation. Not generic.
+MOTIVATION — Output exactly the quote and author given below in QUOTE below, verbatim, formatted as: {quote_text} — {quote_author}. Do not alter the wording or attribution, and do not add anything else.
 
 Rules:
 - Base every claim on the student data below. If a field is absent, omit it — do not guess.
+- Do not invent conflicts beyond what is listed in CONFLICTS DATA below.
 - Events labeled [Google] come from Google Calendar sync. Events labeled [Manual] were entered by the student.
 - 150 words maximum across all four sections.
-- No preamble. No sign-off. Output the four sections only.
+- No preamble. No sign-off. No section titled anything other than the four labels above. Output the four sections only.
 
 TODAY'S DATE: {now.strftime("%A, %B %d %Y")}
 
@@ -63,6 +96,12 @@ TOP PRIORITY TASKS:
 
 TODAY'S EVENTS:
 {today_text}
+
+CONFLICTS DATA:
+{conflicts_text}
+
+QUOTE:
+{quote_text} — {quote_author}
 
 OVERDUE: {len(overdue)} task(s) overdue
 UPCOMING: {len(upcoming)} task(s) remaining
@@ -92,8 +131,6 @@ UPCOMING: {len(upcoming)} task(s) remaining
             "status": t.status.value,
             "description": t.description or None,
         }
-
-    conflicts = detect_conflict(current_user.id, db)
 
     return {
         "summary": summary,

@@ -186,9 +186,6 @@ export default function ChatPage() {
             className={`message message-${msg.role} animate-slide-up`}
             style={{ animationDelay: `${idx * 0.03}s`, animationFillMode: "both" }}
           >
-            <div className="message-avatar">
-              {msg.role === "user" ? "👤" : "🤖"}
-            </div>
             <div className="message-content">
               <p>{msg.content || (loading && idx === messages.length - 1 ? "Thinking..." : "")}</p>
             </div>

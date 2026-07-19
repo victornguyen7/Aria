@@ -5,6 +5,7 @@ import type { Event } from "../types";
 import AddTaskModal from "../components/addTaskModal";
 import AddEventModal from "../components/addEventModel";
 import TodayTimeline from "../components/todayTimeline";
+import { parseServerDate } from "../utils/date";
 import ReactMarkdown from "react-markdown";
 import {
   BriefingSkeleton,
@@ -142,13 +143,13 @@ export default function DashboardPage() {
   };
 
   const formatDate = (iso?: string | Date | null) =>
-    iso ? new Date(iso as any).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+    iso ? parseServerDate(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 
   const overdue = tasks.filter(
-    (t) => t.due_date && new Date(t.due_date) < new Date() && t.status !== "done"
+    (t) => t.due_date && parseServerDate(t.due_date) < new Date() && t.status !== "done"
   );
   const upcoming = tasks.filter(
-    (t) => t.status !== "done" && (!t.due_date || new Date(t.due_date) >= new Date())
+    (t) => t.status !== "done" && (!t.due_date || parseServerDate(t.due_date) >= new Date())
   );
   const done = tasks.filter((t) => t.status === "done");
 
@@ -291,9 +292,9 @@ export default function DashboardPage() {
             {briefing && (
               <TodayTimeline
                 events={events.filter(
-                  (e) => new Date(e.start_time).toDateString() === new Date().toDateString()
+                  (e) => parseServerDate(e.start_time).toDateString() === new Date().toDateString()
                 )}
-                tasks={tasks.filter((t) => t.due_date && new Date(t.due_date).toDateString() === new Date().toDateString())}
+                tasks={tasks.filter((t) => t.due_date && parseServerDate(t.due_date).toDateString() === new Date().toDateString())}
               />
             )}
           </div>
@@ -338,7 +339,7 @@ export default function DashboardPage() {
                 </p>
                 <div className="flex flex-col" style={{ gap: "0.5rem" }}>
                   {items.map((task) => {
-                    const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
+                    const isOverdue = task.due_date && parseServerDate(task.due_date) < new Date() && task.status !== "done";
                     return (
                     <div
                       key={task.id}

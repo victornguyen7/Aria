@@ -1,3 +1,5 @@
+import { parseServerDate } from "../utils/date";
+
 interface Event {
   id: string;
   title: string;
@@ -26,16 +28,16 @@ export default function TodayTimeline({ events, tasks }: Props) {
     ...events.map((e) => ({
       id: `event-${e.id}`,
       title: e.title,
-      time: new Date(e.start_time),
-      endTime: e.end_time ? new Date(e.end_time) : null,
+      time: parseServerDate(e.start_time),
+      endTime: e.end_time ? parseServerDate(e.end_time) : null,
       type: "event" as const,
     })),
     ...tasks
-      .filter((t) => t.due_date && new Date(t.due_date).toDateString() === now.toDateString())
+      .filter((t) => t.due_date && parseServerDate(t.due_date).toDateString() === now.toDateString())
       .map((t) => ({
         id: `task-${t.id}`,
         title: t.title,
-        time: new Date(t.due_date!),
+        time: parseServerDate(t.due_date!),
         endTime: null,
         type: "task" as const,
         priority: t.priority,
