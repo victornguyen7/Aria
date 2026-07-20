@@ -52,7 +52,13 @@ export default function DashboardPage() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [calendarSyncing, setCalendarSyncing] = useState(false);
+  const [now, setNow] = useState(new Date());
   const { errorToast, successToast } = useToast();
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -153,6 +159,9 @@ export default function DashboardPage() {
   );
   const done = tasks.filter((t) => t.status === "done");
 
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)" }}>
       <div
@@ -163,10 +172,14 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between" style={{ marginBottom: "2.5rem" }}>
           <div>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--text)" }}>Good morning ✦</h1>
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--text)" }}>{greeting} ✦</h1>
             <p style={{ fontSize: "0.875rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>
-              {new Date().toLocaleDateString("en-US", {
+              {now.toLocaleDateString("en-US", {
                 weekday: "long", month: "long", day: "numeric",
+              })}
+              {" · "}
+              {now.toLocaleTimeString("en-US", {
+                hour: "numeric", minute: "2-digit", second: "2-digit",
               })}
             </p>
           </div>

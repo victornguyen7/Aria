@@ -11,7 +11,8 @@ from services.conflict import detect_conflict
 from config import config
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,15 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
 
     top = get_priority_tasks(current_user.id, db)
     top_text = "\n".join([f"- {t.title} {t.priority.value.upper()} - due {t.due_date.strftime('%b %d') if t.due_date else 'no date'}" for t in top]) or "No tasks."
-    events = db.query(Event).filter(Event.user_id == current_user.id, Event.start_time >= now).all()
-    
+
+    today_start = datetime(now.year, now.month, now.day)
+    today_end = today_start + timedelta(days=1)
+    today = db.query(Event).filter(
+        Event.user_id == current_user.id,
+        Event.start_time >= today_start,
+        Event.start_time < today_end,
+    ).order_by(Event.start_time).all()
+
     # Get all tasks for filtering
     all_tasks = db.query(Task).filter(Task.user_id == current_user.id).all()
     overdue = [t for t in all_tasks if t.due_date and t.due_date < now and t.status != Status.done.value]
@@ -59,8 +67,10 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
          [t for t in all_tasks if t.status != Status.done.value and (not t.due_date or t.due_date >= now)],
         key=lambda t: (t.due_date is None, t.due_date)
     )
-    today = [e for e in events if e.start_time.date() == now.date()]
-    today_text = "\n".join([f"- {e.title} (At: {e.start_time.strftime('%I:%M %p')})" for e in today]) or "No events today."
+    local_tz = ZoneInfo(config.LOCAL_TZ)
+    today_text = "\n".join(
+        [f"- {e.title} (At: {e.start_time.replace(tzinfo=timezone.utc).astimezone(local_tz).strftime('%I:%M %p')})" for e in today]
+    ) or "No events today."
 
     conflicts = detect_conflict(current_user.id, db)
     top_conflicts = conflicts[:3]
@@ -70,41 +80,62 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
 
     quote_text, quote_author = random.choice(WORKAHOLIC_QUOTES)
 
-    prompt = f"""You are ARIA (Academic & Routine Intelligence Assistant). You produce one structured daily briefing for a student using only the data provided. Never invent tasks, events, deadlines, or details not present in the data.
+    prompt = f"""SYSTEM_PROMPT = You are ARIA (Academic & Routine Intelligence Assistant). You generate one structured daily briefing for a student using ONLY the data provided below. Never invent tasks, events, deadlines, times, conflicts, or details that are not explicitly present in the data.
 
-Respond in exactly four labeled sections:
+You will receive:
+- TODAY'S DATE: the current date
+- TODAY'S EVENTS: a list of events happening today, each with a title and start time
+- TASKS: up to 5 tasks the student should focus on (not necessarily due today), each with a title, priority level, and due date
+- CONFLICTS DATA: a list of 0-3 precomputed scheduling conflicts, each already a complete sentence
+- QUOTE: a fixed motivational quote
 
-SCHEDULE — List today's events and tasks due today with their times, if applicable, one per line. If nothing is scheduled, say so.
+Respond in exactly four sections, in this order, using these exact all-caps headers followed by a colon and a newline. No markdown, no bold, no bullet symbols other than "- ", no extra headers, no preamble, no sign-off.
 
-TOP PRIORITIES — List up to five tasks or events from the data that need the most attention today, ordered by importance. For each, give a short reason (overdue, due soon, high priority, etc.).
+EVENTS:
+List every item from TODAY'S EVENTS, one per line as "- {{time}}: {{title}}", ordered chronologically. If TODAY'S EVENTS is empty, write exactly:
+- No events scheduled for today.
 
-CONFLICTS — List the conflicts provided below (up to three), stating what overlaps or clashes. If none are provided, write "No conflicts today."
+TASKS:
+List every item from TASKS, ordered as given, as "- {{title}}: {{reason}}", where {{reason}} is one short phrase grounded in that task's priority and due date (e.g., "overdue", "high priority, due Jul 20", "no due date"). Never invent a reason not supported by the data. If TASKS is empty, write exactly:
+- No tasks right now.
 
-MOTIVATION — Output exactly the quote and author given below in QUOTE below, verbatim, formatted as: {quote_text} — {quote_author}. Do not alter the wording or attribution, and do not add anything else.
+CONFLICTS:
+List every conflict in CONFLICTS DATA (there will never be more than 3), one per line as "- {{message}}", restating each message verbatim. Do not compute, infer, reformat, or add conflicts yourself. If CONFLICTS DATA is empty, write exactly:
+- No conflicts today.
 
-Rules:
-- Base every claim on the student data below. If a field is absent, omit it — do not guess.
-- Do not invent conflicts beyond what is listed in CONFLICTS DATA below.
-- Events labeled [Google] come from Google Calendar sync. Events labeled [Manual] were entered by the student.
-- 150 words maximum across all four sections.
-- No preamble. No sign-off. No section titled anything other than the four labels above. Output the four sections only.
+MOTIVATION:
+Output exactly one line: the QUOTE text followed by " — " and its author, copied verbatim character for character. Do not paraphrase, trim, translate, or add commentary.
+
+Hard rules:
+1. Every claim must trace to a field in the data above. If a field is missing or empty, omit it — never guess or fill in a plausible-sounding value.
+2. Total output must not exceed 150 words. If the data would exceed this, keep EVENTS and TASKS complete and shorten the {{reason}} phrases first; never truncate mid-line or drop an item silently.
+3. Output must contain exactly these four headers, each appearing exactly once, in the order given above, with no other text before, between, or after them.
+
+Your response MUST follow this exact structure — match the headers, line breaks, and "- " prefixes character for character (the "..." lines are placeholders, not literal output):
+EVENTS:
+- ...
+- ...
+TASKS:
+- ...
+- ...
+CONFLICTS:
+- ...
+MOTIVATION:
+- ...
 
 TODAY'S DATE: {now.strftime("%A, %B %d %Y")}
 
-TOP PRIORITY TASKS:
-{top_text}
-
 TODAY'S EVENTS:
 {today_text}
+
+TASKS:
+{top_text}
 
 CONFLICTS DATA:
 {conflicts_text}
 
 QUOTE:
 {quote_text} — {quote_author}
-
-OVERDUE: {len(overdue)} task(s) overdue
-UPCOMING: {len(upcoming)} task(s) remaining
 """
     summary = "Unable to generate briefing at this time. Please try again."
     

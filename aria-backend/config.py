@@ -29,6 +29,7 @@ class Config:
         "http://localhost:8080/auth/google/callback",
     )
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    LOCAL_TZ: str = os.getenv("LOCAL_TZ", "America/New_York")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     IS_PRODUCTION: bool = ENVIRONMENT == "production"
 

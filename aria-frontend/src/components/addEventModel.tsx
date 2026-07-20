@@ -28,8 +28,8 @@ export default function AddEventModal({ isOpen, onClose, onCreated }: addEventMo
       const response = await api.post("/events", {
         title,
         description: description || undefined,
-        start_time: startTime || undefined,
-        end_time: endTime || undefined
+        start_time: startTime ? new Date(startTime).toISOString() : undefined,
+        end_time: endTime ? new Date(endTime).toISOString() : undefined
       });
       onCreated(response.data);
       onClose();
