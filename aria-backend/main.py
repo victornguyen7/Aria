@@ -34,11 +34,11 @@ app = FastAPI(title = "Aria API")
 _origins = [
     "http://localhost:5173",
     "http://localhost:4173",
+    "https://aria-two-xi.vercel.app",
 ]
-if config.IS_PRODUCTION:
-    frontend = os.getenv("FRONTEND_ORIGIN", "")
-    if frontend:
-        _origins.append(frontend)
+_frontend_origin = os.getenv("FRONTEND_ORIGIN", "")
+if _frontend_origin:
+    _origins.extend(o.strip() for o in _frontend_origin.split(",") if o.strip())
 
 app.add_middleware(
     CORSMiddleware,
