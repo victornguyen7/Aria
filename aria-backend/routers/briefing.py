@@ -58,6 +58,7 @@ def get_briefing(db: Session = Depends(get_db), current_user: User = Depends(get
         Event.user_id == current_user.id,
         Event.start_time >= today_start,
         Event.start_time < today_end,
+        Event.end_time >= now,
     ).order_by(Event.start_time).all()
 
     # Get all tasks for filtering

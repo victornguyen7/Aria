@@ -68,13 +68,13 @@ def sync_calendar(db: Session = Depends(get_db), current_user: User = Depends(ge
 
             start = datetime.fromisoformat(
                 ge["start"]["dateTime"].replace("Z", "+00:00")
-            ).replace(tzinfo=None)
+            ).astimezone(timezone.utc).replace(tzinfo=None)
 
             end = None
             if "dateTime" in ge.get("end", {}):
                 end = datetime.fromisoformat(
                     ge["end"]["dateTime"].replace("Z", "+00:00")
-                ).replace(tzinfo=None)
+                ).astimezone(timezone.utc).replace(tzinfo=None)
             if end is None:
                 end = start + timedelta(hours=1)
 

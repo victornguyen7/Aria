@@ -1,8 +1,13 @@
-from sqlalchemy.orm import Session 
+from sqlalchemy.orm import Session
 from models.user import User
 from models.task import Task, Status, Priority
 from models.event import Event
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+from config import config
+
+def to_local(dt: datetime) -> datetime:
+    return dt.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(config.LOCAL_TZ))
 
 def score_priority(task_obj: Task, now: datetime) -> float:
     score = 0.0
@@ -72,7 +77,7 @@ def build_user_context(user: User, db: Session) -> str:
         sorted_google = sorted(google_events, key=lambda e: e.start_time)
         google_section = f"""
 GOOGLE CALENDAR EVENTS (next 7 days, {len(sorted_google)} total)
-{chr(10).join(f"- {e.title} on {e.start_time.strftime('%A %b %d at %I:%M %p')}" for e in sorted_google)}
+{chr(10).join(f"- {e.title} on {to_local(e.start_time).strftime('%A %b %d at %I:%M %p')}" for e in sorted_google)}
 """
         
     context = f"""
@@ -81,19 +86,19 @@ GOOGLE CALENDAR EVENTS (next 7 days, {len(sorted_google)} total)
     Email: {user.email}
 
     Overdue: ({len(overdue)} total)
-    {chr(10).join(f"- {t.title} (Due: {t.due_date.strftime('%Y-%m-%d %H:%M')}) - Priority: {t.priority} - Status: {t.status}" for t in overdue) if overdue else "None."}
+    {chr(10).join(f"- {t.title} (Due: {to_local(t.due_date).strftime('%Y-%m-%d %H:%M')}) - Priority: {t.priority} - Status: {t.status}" for t in overdue) if overdue else "None."}
 
     Upcoming: ({len(upcoming)} total)
-    {chr(10).join(f"- {t.title} (Due: {t.due_date.strftime('%Y-%m-%d %H:%M')}) - Priority: {t.priority} - Status: {t.status}" for t in upcoming) if upcoming else "None."}
+    {chr(10).join(f"- {t.title} (Due: {to_local(t.due_date).strftime('%Y-%m-%d %H:%M')}) - Priority: {t.priority} - Status: {t.status}" for t in upcoming) if upcoming else "None."}
 
     Done: ({len(done)} total)
     {chr(10).join(f"- {t.title}" for t in done) if done else "None."}
 
     Today's schedule ({len(today_events)} events)
-    {chr(10).join(f"- {e.title} at {e.start_time.strftime('%I:%M %p')} {'[Google]' if e.source.startswith('google:') else '[Manual]'}" for e in today_events) or "Nothing scheduled today."}
+    {chr(10).join(f"- {e.title} at {to_local(e.start_time).strftime('%I:%M %p')} {'[Google]' if e.source.startswith('google:') else '[Manual]'}" for e in today_events) or "Nothing scheduled today."}
 
     Upcoming events (next 7 days, {len(upcoming_events)} total)
-    {chr(10).join(f"- {e.title} on {e.start_time.strftime('%A %b %d at %I:%M %p')} {'[Google]' if e.source.startswith('google:') else '[Manual]'}" for e in upcoming_events) or "No upcoming events."}
+    {chr(10).join(f"- {e.title} on {to_local(e.start_time).strftime('%A %b %d at %I:%M %p')} {'[Google]' if e.source.startswith('google:') else '[Manual]'}" for e in upcoming_events) or "No upcoming events."}
     {google_section}
     """.strip()
 
