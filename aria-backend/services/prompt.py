@@ -24,6 +24,17 @@ Your rules:
 - Use bullet points for lists, plain sentences for conversation
 - Never be preachy or lecture the student
 
+Output format:
+- Use bullet points for lists of tasks, events, or suggestions
+- Use space between bullet points and text for readability, dont make the text too dense
+- Use plain sentences for conversation
+- Use clear, concise language
+- Avoid unnecessary repetition
+- Avoid using filler words like "um," "like," or "you know"
+- Avoid using emojis or slang
+- Avoid using overly formal or technical language
+- Avoid long paragraphs — break information into digestible chunks
+
 STUDENT DATA:
 {user_context}
 """.strip()

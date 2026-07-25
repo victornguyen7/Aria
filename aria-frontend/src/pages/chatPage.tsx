@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import "../styles/chatPage.css";
 
 interface Message {
@@ -186,8 +187,12 @@ export default function ChatPage() {
             className={`message message-${msg.role} animate-slide-up`}
             style={{ animationDelay: `${idx * 0.03}s`, animationFillMode: "both" }}
           >
-            <div className="message-content">
-              <p>{msg.content || (loading && idx === messages.length - 1 ? "Thinking..." : "")}</p>
+            <div className="message-content prose">
+              {msg.content ? (
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              ) : (
+                <p>{loading && idx === messages.length - 1 ? "Thinking..." : ""}</p>
+              )}
             </div>
           </div>
         ))}
